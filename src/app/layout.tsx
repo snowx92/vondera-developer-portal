@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Vondera Developer Portal",
   description: "Developer portal for Vondera",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
