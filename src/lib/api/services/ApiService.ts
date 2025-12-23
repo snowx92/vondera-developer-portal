@@ -37,9 +37,8 @@ export class ApiService {
       // Try to get token from localStorage
       const storedToken = this.sessionManager.getToken();
       if (!storedToken) {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+        // Don't redirect here - let the layout handle authentication
+        console.log('⚠️ ApiService: No token found, throwing error');
         throw new Error("Please log in to continue");
       }
       // Use stored token
@@ -66,11 +65,17 @@ export class ApiService {
     customHeaders: Record<string, string>
   ): Promise<T | null> {
     if (printLogs) {
-      console.log(`API Request: ${method} ${this.baseURL}${fullUrl}`);
+      console.log(`🌐 API Request: ${method} ${this.baseURL}${fullUrl}`);
       if (body) {
-        console.log("Request Body:", body);
+        console.log("📦 Request Body:", body);
       }
-      console.log("Request Headers:", { ...staticHeaders, ...customHeaders });
+      console.log("📋 Request Headers:", { ...staticHeaders, ...customHeaders });
+      // Log the full token being sent
+      const authHeader = staticHeaders.Authorization || customHeaders.Authorization;
+      if (authHeader) {
+        console.log("🔑 Full Authorization Header:", authHeader);
+        console.log("🔑 Token length:", authHeader.replace('Bearer ', '').length);
+      }
     }
 
     const options: RequestInit = {
@@ -91,14 +96,21 @@ export class ApiService {
       const response = await fetch(`${this.baseURL}${fullUrl}`, options);
 
       if (printLogs) {
-        console.log(`API Response: ${response.status} ${response.statusText}`);
+        console.log(`📡 API Response: ${response.status} ${response.statusText}`);
       }
 
       if (response.status === 401) {
-        this.sessionManager.clearSession();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+        // Log the error response before clearing session
+        try {
+          const errorBody = await response.clone().json();
+          console.error('❌ 401 Error Response Body:', errorBody);
+        } catch (e) {
+          console.error('❌ 401 Error (no JSON body)');
         }
+
+        // Clear the session but don't redirect - let the layout handle it
+        console.log('❌ 401 Unauthorized - clearing session');
+        this.sessionManager.clearSession();
         throw new Error("Authentication failed - please log in again");
       }
 

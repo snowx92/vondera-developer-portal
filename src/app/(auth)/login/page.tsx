@@ -35,14 +35,40 @@ export default function LoginPage() {
     setError('');
 
     try {
+      console.log('🔑 Login form: Submitting...');
       const result = await AuthService.login(formData);
 
-      if (result.success) {
-        router.push('/dashboard');
+      console.log('🔑 Login form: Result:', { success: result.success, hasToken: !!result.token });
+
+      if (result.success && result.token) {
+        console.log('🔑 Login form: Success! Token received');
+
+        // Verify token is in localStorage before redirecting
+        const storedToken = localStorage.getItem('auth_token');
+        console.log('🔑 Login form: Token in localStorage:', storedToken ? `EXISTS (${storedToken.substring(0, 20)}...)` : 'MISSING');
+
+        if (storedToken) {
+          console.log('🔑 Login form: Token confirmed in storage. Redirecting to dashboard in 500ms...');
+          // Use router.replace to prevent back button issues
+          setTimeout(() => {
+            console.log('🔑 Login form: Navigating now...');
+            router.replace('/dashboard');
+          }, 500);
+        } else {
+          console.error('🔑 Login form: Token not stored! Retrying...');
+          localStorage.setItem('auth_token', result.token);
+          setTimeout(() => {
+            const retryCheck = localStorage.getItem('auth_token');
+            console.log('🔑 Login form: Retry check:', retryCheck ? 'SUCCESS' : 'FAILED');
+            router.replace('/dashboard');
+          }, 500);
+        }
       } else {
+        console.error('🔑 Login form: Failed -', result.message);
         setError(result.message || 'Login failed. Please try again.');
       }
     } catch (err) {
+      console.error('🔑 Login form: Exception -', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

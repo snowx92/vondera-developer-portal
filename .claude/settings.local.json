@@ -9,7 +9,11 @@
       "Bash(ls:*)",
       "Bash(npm install:*)",
       "Bash(npm run dev:*)",
-      "Bash(timeout /t 5 /nobreak)"
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(node -e:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 120 npm run build)"
     ]
   }
 }
