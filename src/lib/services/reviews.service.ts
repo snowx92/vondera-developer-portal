@@ -42,10 +42,9 @@ export class ReviewsService extends ApiService {
   /**
    * Submit a publish request for review
    * @param appId - The app ID
-   * @param data - Publish request data
    * @returns Promise<ReviewRequest>
    */
-  async submitPublishRequest(appId: string, data: PublishAppRequest): Promise<ReviewRequest | null> {
-    return await this.post<ReviewRequest>(`/apps/${appId}/requests/publish`, data as unknown as Record<string, unknown>);
+  async submitPublishRequest(appId: string): Promise<ReviewRequest | null> {
+    return await this.post<ReviewRequest>(`/apps/${appId}/requests/publish`, {});
   }
 }

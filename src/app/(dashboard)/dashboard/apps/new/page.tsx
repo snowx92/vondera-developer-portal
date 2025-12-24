@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { appsService } from '@/lib/services';
 import type { AppCategory } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -16,8 +17,10 @@ export default function NewAppPage() {
   const [formData, setFormData] = useState({
     name: '',
     category: '',
+    icon: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [iconPreview, setIconPreview] = useState<string>('');
 
   useEffect(() => {
     loadCategories();
@@ -30,6 +33,33 @@ export default function NewAppPage() {
     } catch (error) {
       console.error('Failed to load categories:', error);
     }
+  };
+
+  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors({ ...errors, icon: 'Please upload an image file' });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setErrors({ ...errors, icon: 'Icon must be less than 2MB' });
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setFormData({ ...formData, icon: base64String });
+      setIconPreview(base64String);
+      setErrors({ ...errors, icon: '' });
+    };
+    reader.readAsDataURL(file);
   };
 
   const validateForm = () => {
@@ -61,6 +91,7 @@ export default function NewAppPage() {
       const app = await appsService.createApp({
         name: formData.name,
         category: formData.category,
+        ...(formData.icon && { icon: formData.icon }),
       });
 
       if (app) {
@@ -130,6 +161,59 @@ export default function NewAppPage() {
               <p className="text-sm text-gray-500 mt-1">
                 {categories.find((c) => c.key === formData.category)?.description}
               </p>
+            )}
+          </div>
+
+          {/* App Icon */}
+          <div>
+            <Label htmlFor="icon">App Icon (Optional)</Label>
+            <div className="mt-2">
+              <div className="flex items-center gap-4">
+                {/* Icon Preview */}
+                <div className="flex-shrink-0">
+                  {iconPreview ? (
+                    <Image
+                      src={iconPreview}
+                      alt="App icon preview"
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Button */}
+                <div className="flex-1">
+                  <label
+                    htmlFor="icon-upload"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload Icon
+                  </label>
+                  <input
+                    id="icon-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleIconUpload}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    PNG, JPG, or GIF. Max 2MB. Recommended: 512x512px
+                  </p>
+                </div>
+              </div>
+            </div>
+            {errors.icon && (
+              <p className="text-sm text-red-600 mt-2">{errors.icon}</p>
             )}
           </div>
 

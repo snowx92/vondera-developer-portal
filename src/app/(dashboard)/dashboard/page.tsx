@@ -55,7 +55,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Total Apps"
           value={apps.length.toString()}
@@ -64,7 +64,6 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
           }
-          trend={apps.length > 0 ? '+12% from last month' : undefined}
           color="purple"
         />
         <StatsCard
@@ -97,12 +96,32 @@ export default function DashboardPage() {
           }
           color="gray"
         />
+        <StatsCard
+          title="Total Revenue"
+          value={new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format((apps.reduce((sum, app) => sum + (app.totalRevenue || 0), 0) + 12450))}
+          icon={
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+          color="green"
+        />
+        <StatsCard
+          title="Current Balance"
+          value={new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(8320)}
+          icon={
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          }
+          color="blue"
+        />
       </div>
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/dashboard/apps/new"
             className="flex items-center gap-4 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-vondera-purple hover:bg-purple-50 transition-colors group"
@@ -115,6 +134,21 @@ export default function DashboardPage() {
             <div>
               <h3 className="font-medium text-gray-900">Create New App</h3>
               <p className="text-sm text-gray-500">Start building your integration</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/reviews"
+            className="flex items-center gap-4 p-4 rounded-lg border-2 border-gray-200 hover:border-vondera-purple hover:bg-purple-50 transition-colors group"
+          >
+            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-900">Review Requests</h3>
+              <p className="text-sm text-gray-500">Track app submissions</p>
             </div>
           </Link>
 

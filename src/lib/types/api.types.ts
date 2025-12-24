@@ -65,7 +65,7 @@ export interface PricingSettings {
 // ============================================
 
 export interface SetupFormField {
-  id: string;
+  name: string;
   type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number' | 'email' | 'url';
   label: string;
   placeholder?: string;
@@ -79,7 +79,7 @@ export interface SetupFormField {
 // ============================================
 
 export type AppStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
-export type AppType = 'FREE' | 'PAID' | 'FREEMIUM';
+export type AppType = 'FREE' | 'PREMIUM' | 'PAID';
 
 export interface App {
   id: string;
@@ -100,6 +100,8 @@ export interface App {
   pricing: PricingSettings;
   supported_countries: string[];
   setup_form: SetupFormField[];
+  installsCount: number;
+  totalRevenue?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -149,10 +151,24 @@ export interface WebhookSettings {
 
 export interface CountrySettings {
   supported_countries: string[];
+  hasPendingChanges?: boolean;
 }
 
 export interface SetupFormSettings {
   setup_form: SetupFormField[];
+  hasPendingChanges?: boolean;
+}
+
+export interface PricingSettingsResponse {
+  app_type: AppType;
+  pricing: PricingSettings;
+  supported_countries: string[];
+  hasPendingChanges?: boolean;
+}
+
+export interface PricingSettingsUpdate {
+  app_type: AppType;
+  pricing: PricingSettings;
 }
 
 // ============================================
@@ -171,13 +187,35 @@ export interface ReviewRequest {
   requested_version: string;
   pending_changes: Partial<App>;
   changes_summary: string;
+  changes_diff?: Record<string, { old: unknown; new: unknown }>;
   status: RequestStatus;
   reviewer_notes?: string;
   rejection_reason?: string;
-  createdAt: string;
-  updatedAt: string;
-  reviewed_at?: string;
+  createdAt: string | Timestamp;
+  updatedAt: string | Timestamp;
+  reviewed_at?: string | Timestamp;
   reviewed_by?: string;
+}
+
+// ============================================
+// App Steps Types
+// ============================================
+
+export interface AppStep {
+  step: string;
+  field: string;
+  message: string;
+  completed: boolean;
+  optional?: boolean;
+}
+
+export interface AppStepsResponse {
+  readyForPublish: boolean;
+  haveUpdate: boolean;
+  completedSteps: number;
+  totalSteps: number;
+  steps: AppStep[];
+  missingFields: string[];
 }
 
 // ============================================
@@ -201,6 +239,7 @@ export interface CreateAppRequest {
   name: string;
   category: string;
   description?: string;
+  icon?: string; // Base64 encoded image data
 }
 
 // ============================================
@@ -208,9 +247,7 @@ export interface CreateAppRequest {
 // ============================================
 
 export interface UpdateAppRequest {
-  version: string;
-  changes_summary: string;
-  pending_changes: Partial<App>;
+  notes: string; // Summary of changes made
 }
 
 // ============================================
@@ -218,6 +255,5 @@ export interface UpdateAppRequest {
 // ============================================
 
 export interface PublishAppRequest {
-  version: string;
-  changes_summary: string;
+  // No body required for publish requests
 }

@@ -6,6 +6,7 @@ import type {
   ScopeCategory,
   CreateAppRequest,
   PublishStep,
+  AppStepsResponse,
 } from '../types/api.types';
 
 /**
@@ -76,5 +77,14 @@ export class AppsService extends ApiService {
    */
   async getPublishSteps(appId: string): Promise<PublishStep[]> {
     return await this.get<PublishStep[]>(`/apps/${appId}/steps`) || [];
+  }
+
+  /**
+   * Get app completion steps
+   * @param appId - The app ID
+   * @returns Promise<AppStepsResponse>
+   */
+  async getAppSteps(appId: string): Promise<AppStepsResponse | null> {
+    return await this.get<AppStepsResponse>(`/apps/${appId}/steps`);
   }
 }

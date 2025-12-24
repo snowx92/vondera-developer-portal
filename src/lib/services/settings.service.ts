@@ -7,6 +7,8 @@ import type {
   ScopeSettings,
   WebhookSettings,
   PricingSettings,
+  PricingSettingsResponse,
+  PricingSettingsUpdate,
   CountrySettings,
   SetupFormSettings,
 } from '../types/api.types';
@@ -161,20 +163,20 @@ export class SettingsService extends ApiService {
   /**
    * Get pricing settings for an app
    * @param appId - The app ID
-   * @returns Promise<PricingSettings>
+   * @returns Promise<PricingSettingsResponse>
    */
-  async getPricingSettings(appId: string): Promise<PricingSettings | null> {
-    return await this.get<PricingSettings>(`/apps/${appId}/settings/pricing`);
+  async getPricingSettings(appId: string): Promise<PricingSettingsResponse | null> {
+    return await this.get<PricingSettingsResponse>(`/apps/${appId}/settings/pricing`);
   }
 
   /**
    * Update pricing settings for an app
    * @param appId - The app ID
    * @param data - Updated pricing settings
-   * @returns Promise<PricingSettings>
+   * @returns Promise<PricingSettingsResponse>
    */
-  async updatePricingSettings(appId: string, data: PricingSettings): Promise<PricingSettings | null> {
-    return await this.put<PricingSettings>(`/apps/${appId}/settings/pricing`, data as unknown as Record<string, unknown>);
+  async updatePricingSettings(appId: string, data: PricingSettingsUpdate): Promise<PricingSettingsResponse | null> {
+    return await this.put<PricingSettingsResponse>(`/apps/${appId}/settings/pricing`, data as unknown as Record<string, unknown>);
   }
 
   // ============================================
