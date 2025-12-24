@@ -26,6 +26,7 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fields, setFields] = useState<SetupFormField[]>([]);
+  const [originalFields, setOriginalFields] = useState<SetupFormField[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
@@ -39,6 +40,7 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
       const data = await settingsService.getSetupFormSettings(appId);
       if (data) {
         setFields(data.setup_form || []);
+        setOriginalFields(data.setup_form || []);
       }
     } catch (error) {
       console.error('Failed to load setup form settings:', error);
@@ -47,6 +49,9 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
       setLoading(false);
     }
   };
+
+  // Check if form has changes
+  const hasChanges = JSON.stringify(fields) !== JSON.stringify(originalFields);
 
   const addField = () => {
     setFields([
@@ -285,7 +290,11 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={saving}>
+          <Button
+            type="submit"
+            disabled={saving || !hasChanges}
+            className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+          >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

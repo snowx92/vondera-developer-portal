@@ -7,14 +7,14 @@
   --foreground: #1a1a1a;
   --muted-foreground: #4a5568;
   --card-foreground: #1a1a1a;
-  --primary: #4d1a7e;
+  --primary: #00639b;
   --primary-foreground: #ffffff;
   --border: #e5e7eb;
   --input: #e5e7eb;
-  --ring: #4d1a7e;
-  --vondera-purple: #4d1a7e;
-  --vondera-purple-dark: #60199e;
-  --vondera-purple-light: #4d1a7e;
+  --ring: #00639b;
+  --vondera-purple: #00639b;
+  --vondera-purple-dark: #004d7a;
+  --vondera-purple-light: #00639b;
 }
 
 /* Force light mode - disable dark mode completely */
@@ -45,4 +45,156 @@ label {
       linear-gradient(to bottom, #9333ea10 1px, transparent 1px);
     background-size: 24px 24px;
   }
+}
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 0.875rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.25rem;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid var(--vondera-purple);
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: #4a5568;
+  font-style: italic;
+}
+
+.ProseMirror code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.ProseMirror pre {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror pre code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.ProseMirror mark {
+  border-radius: 0.125rem;
+  padding: 0.125rem 0.25rem;
+}
+
+.ProseMirror u {
+  text-decoration: underline;
+}
+
+.ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+.ProseMirror [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+.ProseMirror .hljs-comment,
+.ProseMirror .hljs-quote {
+  color: #6b7280;
+}
+
+.ProseMirror .hljs-keyword,
+.ProseMirror .hljs-selector-tag,
+.ProseMirror .hljs-addition {
+  color: #10b981;
+}
+
+.ProseMirror .hljs-number,
+.ProseMirror .hljs-string,
+.ProseMirror .hljs-meta .hljs-string,
+.ProseMirror .hljs-literal,
+.ProseMirror .hljs-doctag,
+.ProseMirror .hljs-regexp {
+  color: #3b82f6;
+}
+
+.ProseMirror .hljs-title,
+.ProseMirror .hljs-section,
+.ProseMirror .hljs-name,
+.ProseMirror .hljs-selector-id,
+.ProseMirror .hljs-selector-class {
+  color: #f59e0b;
+}
+
+.ProseMirror .hljs-attribute,
+.ProseMirror .hljs-attr,
+.ProseMirror .hljs-variable,
+.ProseMirror .hljs-template-variable,
+.ProseMirror .hljs-class .hljs-title,
+.ProseMirror .hljs-type {
+  color: #8b5cf6;
 }

@@ -37,6 +37,7 @@ export function CountriesTab({ appId, onUpdate }: CountriesTabProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [originalCountries, setOriginalCountries] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
@@ -50,6 +51,7 @@ export function CountriesTab({ appId, onUpdate }: CountriesTabProps) {
       const data = await settingsService.getCountrySettings(appId);
       if (data) {
         setSelectedCountries(data.supported_countries || []);
+        setOriginalCountries(data.supported_countries || []);
       }
     } catch (error) {
       console.error('Failed to load country settings:', error);
@@ -58,6 +60,9 @@ export function CountriesTab({ appId, onUpdate }: CountriesTabProps) {
       setLoading(false);
     }
   };
+
+  // Check if form has changes
+  const hasChanges = JSON.stringify(selectedCountries.sort()) !== JSON.stringify(originalCountries.sort());
 
   const toggleCountry = (countryCode: string) => {
     if (selectedCountries.includes(countryCode)) {
@@ -219,7 +224,11 @@ export function CountriesTab({ appId, onUpdate }: CountriesTabProps) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={saving}>
+          <Button
+            type="submit"
+            disabled={saving || !hasChanges}
+            className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+          >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

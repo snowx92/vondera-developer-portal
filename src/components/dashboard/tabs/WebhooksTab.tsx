@@ -29,6 +29,9 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
   const [settings, setSettings] = useState<WebhookSettings>({
     webhook_events: [],
   });
+  const [originalSettings, setOriginalSettings] = useState<WebhookSettings>({
+    webhook_events: [],
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
@@ -42,6 +45,7 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
       const data = await settingsService.getWebhookSettings(appId);
       if (data) {
         setSettings(data);
+        setOriginalSettings(data);
       }
     } catch (error) {
       console.error('Failed to load webhook settings:', error);
@@ -51,10 +55,13 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
     }
   };
 
+  // Check if form has changes
+  const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
+
   const addWebhook = () => {
     setSettings({
       ...settings,
-      webhook_events: [...settings.webhook_events, { event: '', url: '' }],
+      webhook_events: [...settings.webhook_events, { event: '', url: '', reason: '' }],
     });
   };
 
@@ -177,6 +184,22 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
                       <p className="text-sm text-red-600 mt-1">{errors[`url_${index}`]}</p>
                     )}
                   </div>
+
+                  {/* Reason */}
+                  <div>
+                    <Label htmlFor={`reason_${index}`}>Reason (Why do you need this webhook?)</Label>
+                    <textarea
+                      id={`reason_${index}`}
+                      value={webhook.reason || ''}
+                      onChange={(e) => updateWebhook(index, 'reason', e.target.value)}
+                      placeholder="Explain why your app needs to subscribe to this event..."
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This helps reviewers understand your app&apos;s functionality
+                    </p>
+                  </div>
                 </div>
 
                 {/* Remove Button */}
@@ -249,7 +272,11 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={saving}>
+          <Button
+            type="submit"
+            disabled={saving || !hasChanges}
+            className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+          >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

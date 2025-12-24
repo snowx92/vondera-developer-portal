@@ -37,13 +37,30 @@ function generateInstallData(startDate: Date, endDate: Date): { date: string; in
 function generateRevenueData(startDate: Date, endDate: Date): { date: string; revenue: number; displayDate: string }[] {
   const data: { date: string; revenue: number; displayDate: string }[] = [];
   const current = new Date(startDate);
-  
+
   while (current <= endDate) {
     const dateStr = current.toISOString().split('T')[0];
     data.push({
       date: dateStr,
       displayDate: current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       revenue: Math.floor(Math.random() * 800) + 100,
+    });
+    current.setDate(current.getDate() + 1);
+  }
+  return data;
+}
+
+// Generate random uninstall data for a date range
+function generateUninstallData(startDate: Date, endDate: Date): { date: string; uninstalls: number; displayDate: string }[] {
+  const data: { date: string; uninstalls: number; displayDate: string }[] = [];
+  const current = new Date(startDate);
+
+  while (current <= endDate) {
+    const dateStr = current.toISOString().split('T')[0];
+    data.push({
+      date: dateStr,
+      displayDate: current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      uninstalls: Math.floor(Math.random() * 20) + 2,
     });
     current.setDate(current.getDate() + 1);
   }
@@ -206,9 +223,14 @@ export function AnalyticsTab({ app }: AnalyticsTabProps) {
     return generateRevenueData(new Date(startDate), new Date(endDate));
   }, [startDate, endDate]);
 
+  const uninstallData = useMemo(() => {
+    return generateUninstallData(new Date(startDate), new Date(endDate));
+  }, [startDate, endDate]);
+
   // Calculate totals
   const totalInstalls = installData.reduce((sum, d) => sum + d.installs, 0);
   const totalRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0);
+  const totalUninstalls = uninstallData.reduce((sum, d) => sum + d.uninstalls, 0);
   const avgInstallsPerDay = Math.round(totalInstalls / installData.length) || 0;
   const avgRevenuePerDay = Math.round(totalRevenue / revenueData.length) || 0;
 
@@ -327,57 +349,15 @@ export function AnalyticsTab({ app }: AnalyticsTabProps) {
         />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Installs Chart */}
-        <div className="bg-gray-50 rounded-xl p-5">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-900">Installations</h3>
-            <p className="text-xs text-gray-500">Daily installation count</p>
-          </div>
-          <div className="h-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={installData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="installGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis 
-                  dataKey="displayDate" 
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip content={<CustomTooltip valueLabel="Installs" />} />
-                <Area
-                  type="monotone"
-                  dataKey="installs"
-                  stroke="#8b5cf6"
-                  strokeWidth={2}
-                  fill="url(#installGradient)"
-                  animationDuration={1000}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
+      {/* Charts Row - 3 columns */}
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Revenue Chart */}
         <div className="bg-gray-50 rounded-xl p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-gray-900">Revenue</h3>
             <p className="text-xs text-gray-500">Daily revenue generated</p>
           </div>
-          <div className="h-[220px]">
+          <div className="h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                 <defs>
@@ -387,14 +367,14 @@ export function AnalyticsTab({ app }: AnalyticsTabProps) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis 
-                  dataKey="displayDate" 
+                <XAxis
+                  dataKey="displayDate"
                   tick={{ fontSize: 10, fill: '#9ca3af' }}
                   tickLine={false}
                   axisLine={false}
                   interval="preserveStartEnd"
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fontSize: 10, fill: '#9ca3af' }}
                   tickLine={false}
                   axisLine={false}
@@ -411,6 +391,102 @@ export function AnalyticsTab({ app }: AnalyticsTabProps) {
                 />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-3">
+            <p className="text-lg font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
+            <p className="text-xs text-gray-500">Total revenue</p>
+          </div>
+        </div>
+
+        {/* Installs Chart */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Installations</h3>
+            <p className="text-xs text-gray-500">Daily installation count</p>
+          </div>
+          <div className="h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={installData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="installGradient-app" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis
+                  dataKey="displayDate"
+                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<CustomTooltip valueLabel="Installs" />} />
+                <Area
+                  type="monotone"
+                  dataKey="installs"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  fill="url(#installGradient-app)"
+                  animationDuration={1000}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3">
+            <p className="text-lg font-bold text-gray-900">{totalInstalls.toLocaleString()}</p>
+            <p className="text-xs text-gray-500">Total installs</p>
+          </div>
+        </div>
+
+        {/* Uninstalls Chart */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Uninstalls</h3>
+            <p className="text-xs text-gray-500">Daily uninstallation count</p>
+          </div>
+          <div className="h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={uninstallData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="uninstallGradient-app" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis
+                  dataKey="displayDate"
+                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<CustomTooltip valueLabel="Uninstalls" />} />
+                <Area
+                  type="monotone"
+                  dataKey="uninstalls"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  fill="url(#uninstallGradient-app)"
+                  animationDuration={1000}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3">
+            <p className="text-lg font-bold text-red-600">{totalUninstalls.toLocaleString()}</p>
+            <p className="text-xs text-gray-500">Total uninstalls</p>
           </div>
         </div>
       </div>

@@ -87,4 +87,13 @@ export class AppsService extends ApiService {
   async getAppSteps(appId: string): Promise<AppStepsResponse | null> {
     return await this.get<AppStepsResponse>(`/apps/${appId}/steps`);
   }
+
+  /**
+   * Delete an app
+   * @param appId - The app ID
+   * @returns Promise<void>
+   */
+  async deleteApp(appId: string): Promise<void> {
+    await this.delete(`/apps/${appId}`);
+  }
 }

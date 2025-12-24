@@ -45,6 +45,7 @@ export interface AppCategory {
 export interface WebhookEvent {
   event: string;
   url: string;
+  reason?: string; // Why the app needs this webhook - NOT YET IMPLEMENTED IN BACKEND
 }
 
 // ============================================
@@ -125,6 +126,8 @@ export interface GeneralSettings {
 export interface ListingSettings {
   name: string;
   description: string;
+  short_description?: string; // Short description max 80 chars - NOT YET IMPLEMENTED IN BACKEND
+  instructions?: string; // Installation/setup instructions (HTML) - NOT YET IMPLEMENTED IN BACKEND
   category: string;
   icon: string;
   images: string[];
@@ -143,6 +146,7 @@ export interface EndpointSettings {
 
 export interface ScopeSettings {
   scopes: string[];
+  scope_reasons?: Record<string, string>; // Map of scope key to reason - NOT YET IMPLEMENTED IN BACKEND
 }
 
 export interface WebhookSettings {

@@ -24,6 +24,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Default date range: last 7 days
+  const today = new Date();
+  const defaultStart = new Date(today);
+  defaultStart.setDate(defaultStart.getDate() - 7);
+
+  const [startDate, setStartDate] = useState<string>(defaultStart.toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>(today.toISOString().split('T')[0]);
+
   useEffect(() => {
     // Only load apps if we have a token
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -55,42 +63,49 @@ export default function DashboardPage() {
   const draftApps = apps.filter(app => app.status === 'DRAFT');
   const pendingApps = apps.filter(app => app.status === 'PENDING');
 
-  // Generate mock data for charts
-  const installsChartData = useMemo(() => {
-    const last7Days = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      last7Days.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        installs: Math.floor(Math.random() * 100) + 50,
-      });
-    }
-    return last7Days;
-  }, []);
+  // Helper function to generate chart data based on date range
+  const generateChartData = (start: string, end: string, dataKey: string) => {
+    const startDateObj = new Date(start);
+    const endDateObj = new Date(end);
+    const data = [];
 
-  const revenueChartData = useMemo(() => {
-    const last7Days = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      last7Days.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        revenue: Math.floor(Math.random() * 500) + 200,
-      });
-    }
-    return last7Days;
-  }, []);
+    // Calculate number of days in range
+    const daysDiff = Math.floor((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-  // API Health Status
-  const apiHealth = {
-    status: 'operational',
-    uptime: 99.98,
-    latency: 142,
-    lastIncident: '45 days ago',
+    for (let i = 0; i < daysDiff; i++) {
+      const date = new Date(startDateObj);
+      date.setDate(date.getDate() + i);
+
+      const dateFormat = daysDiff <= 7
+        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : daysDiff <= 30
+        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+      if (dataKey === 'installs') {
+        data.push({
+          date: dateFormat,
+          installs: Math.floor(Math.random() * 100) + 50,
+        });
+      } else if (dataKey === 'revenue') {
+        data.push({
+          date: dateFormat,
+          revenue: Math.floor(Math.random() * 500) + 200,
+        });
+      } else if (dataKey === 'uninstalls') {
+        data.push({
+          date: dateFormat,
+          uninstalls: Math.floor(Math.random() * 20) + 5,
+        });
+      }
+    }
+    return data;
   };
+
+  // Generate chart data based on selected date range
+  const installsChartData = useMemo(() => generateChartData(startDate, endDate, 'installs'), [startDate, endDate]);
+  const revenueChartData = useMemo(() => generateChartData(startDate, endDate, 'revenue'), [startDate, endDate]);
+  const uninstallsChartData = useMemo(() => generateChartData(startDate, endDate, 'uninstalls'), [startDate, endDate]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -230,99 +245,126 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Performance Charts & API Health */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Installs Trend */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Installs Trend</h3>
-            <span className="text-xs text-gray-500">Last 7 days</span>
-          </div>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={installsChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="installGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Area type="monotone" dataKey="installs" stroke="#8b5cf6" strokeWidth={2} fill="url(#installGradient)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-2xl font-bold text-gray-900">
-              {installsChartData.reduce((sum, d) => sum + d.installs, 0)}
-            </span>
-            <span className="text-sm text-gray-500">total installs</span>
+      {/* Performance Charts */}
+      <div className="mb-8">
+        {/* Unified Date Range Picker */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <h3 className="font-semibold text-gray-900">Performance Overview</h3>
+            <div className="flex items-center gap-2 ml-auto">
+              <label className="text-sm text-gray-600 font-normal">From:</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                max={endDate}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent"
+              />
+              <label className="text-sm text-gray-600 font-normal">To:</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate}
+                max={today.toISOString().split('T')[0]}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Revenue Trend */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Revenue Trend</h3>
-            <span className="text-xs text-gray-500">Last 7 days</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Revenue Chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Revenue</h3>
+            </div>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fill="url(#revenueGradient)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-2xl font-bold text-green-600">
+                {new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(
+                  revenueChartData.reduce((sum, d) => sum + (d.revenue || 0), 0)
+                )}
+              </span>
+              <span className="text-sm text-gray-500">total</span>
+            </div>
           </div>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fill="url(#revenueGradient)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-2xl font-bold text-green-600">
-              {new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(
-                revenueChartData.reduce((sum, d) => sum + d.revenue, 0)
-              )}
-            </span>
-            <span className="text-sm text-gray-500">earned</span>
-          </div>
-        </div>
 
-        {/* API Health Status */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">API Health</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Status</span>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-sm font-medium text-green-600 capitalize">{apiHealth.status}</span>
-              </div>
+          {/* Installs Chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Installs</h3>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Uptime</span>
-              <span className="text-sm font-semibold text-gray-900">{apiHealth.uptime}%</span>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={installsChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="installGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="installs" stroke="#8b5cf6" strokeWidth={2} fill="url(#installGradient)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Avg Latency</span>
-              <span className="text-sm font-semibold text-gray-900">{apiHealth.latency}ms</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Last Incident</span>
-              <span className="text-sm font-semibold text-gray-900">{apiHealth.lastIncident}</span>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-2xl font-bold text-gray-900">
+                {installsChartData.reduce((sum, d) => sum + (d.installs || 0), 0)}
+              </span>
+              <span className="text-sm text-gray-500">total</span>
             </div>
           </div>
-          <a href="#" className="block mt-4 text-xs text-center text-vondera-purple hover:text-vondera-purple-dark font-medium">
-            View Status Page →
-          </a>
+
+          {/* Uninstalls Chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Uninstalls</h3>
+            </div>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={uninstallsChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="uninstallGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="uninstalls" stroke="#ef4444" strokeWidth={2} fill="url(#uninstallGradient)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-2xl font-bold text-red-600">
+                {uninstallsChartData.reduce((sum, d) => sum + (d.uninstalls || 0), 0)}
+              </span>
+              <span className="text-sm text-gray-500">total</span>
+            </div>
+          </div>
         </div>
       </div>
 

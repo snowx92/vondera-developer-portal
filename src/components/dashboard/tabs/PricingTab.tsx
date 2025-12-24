@@ -22,6 +22,8 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
   const [saving, setSaving] = useState(false);
   const [appType, setAppType] = useState<AppType>('FREE');
   const [pricing, setPricing] = useState<PricingSettings>({});
+  const [originalAppType, setOriginalAppType] = useState<AppType>('FREE');
+  const [originalPricing, setOriginalPricing] = useState<PricingSettings>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
@@ -36,6 +38,8 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
       if (data) {
         setAppType(data.app_type);
         setPricing(data.pricing || {});
+        setOriginalAppType(data.app_type);
+        setOriginalPricing(data.pricing || {});
       }
     } catch (error) {
       console.error('Failed to load pricing settings:', error);
@@ -44,6 +48,11 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
       setLoading(false);
     }
   };
+
+  // Check if form has changes
+  const hasChanges =
+    appType !== originalAppType ||
+    JSON.stringify(pricing) !== JSON.stringify(originalPricing);
 
   const addCountry = (countryCode: string) => {
     const country = AVAILABLE_COUNTRIES.find(c => c.code === countryCode);
@@ -268,7 +277,11 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={saving}>
+          <Button
+            type="submit"
+            disabled={saving || !hasChanges}
+            className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+          >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

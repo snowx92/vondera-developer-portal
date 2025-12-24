@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { settingsService, appsService } from '@/lib/services';
 import type { GeneralSettings, AppCategory } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -14,15 +15,26 @@ interface GeneralSettingsTabProps {
 }
 
 export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSettingsTabProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<AppCategory[]>([]);
   const [formData, setFormData] = useState({
     name: settings?.name || '',
     category: settings?.category || '',
     app_url: settings?.app_url || '',
+    slug: settings?.slug || '',
+  });
+  const [originalData, setOriginalData] = useState({
+    name: settings?.name || '',
+    category: settings?.category || '',
+    app_url: settings?.app_url || '',
+    slug: settings?.slug || '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -30,13 +42,23 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
 
   useEffect(() => {
     if (settings) {
-      setFormData({
+      const data = {
         name: settings.name,
         category: settings.category,
         app_url: settings.app_url,
-      });
+        slug: settings.slug,
+      };
+      setFormData(data);
+      setOriginalData(data);
     }
   }, [settings]);
+
+  // Check if form has changes
+  const hasChanges =
+    formData.name !== originalData.name ||
+    formData.category !== originalData.category ||
+    formData.app_url !== originalData.app_url ||
+    formData.slug !== originalData.slug;
 
   const loadCategories = async () => {
     try {
@@ -82,6 +104,24 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteApp = async () => {
+    if (deleteConfirmText !== formData.slug) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await appsService.deleteApp(appId);
+      // Redirect to apps list after successful deletion
+      router.push('/dashboard/apps');
+    } catch (error) {
+      setErrors({
+        delete: error instanceof Error ? error.message : 'Failed to delete app',
+      });
+      setDeleting(false);
     }
   };
 
@@ -150,16 +190,32 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
         )}
       </div>
 
+      {/* App Slug */}
+      <div>
+        <Label htmlFor="slug">App Slug *</Label>
+        <Input
+          id="slug"
+          type="text"
+          value={formData.slug}
+          onChange={(e) => {
+            // Convert to lowercase and replace spaces with hyphens
+            const slug = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            setFormData({ ...formData, slug });
+          }}
+          placeholder="my-awesome-app"
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          URL-friendly identifier for your app (lowercase, hyphens only)
+        </p>
+        {errors.slug && (
+          <p className="text-sm text-red-600 mt-1">{errors.slug}</p>
+        )}
+      </div>
+
       {/* Read-only fields */}
       <div className="border-t border-gray-200 pt-6">
         <h4 className="font-medium text-gray-900 mb-4">App Details</h4>
         <div className="space-y-4">
-          <div>
-            <Label>Slug</Label>
-            <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
-              {settings?.slug || '-'}
-            </div>
-          </div>
           <div>
             <Label>Version</Label>
             <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
@@ -201,7 +257,11 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
 
       {/* Actions */}
       <div className="flex gap-3 pt-4">
-        <Button type="submit" disabled={loading}>
+        <Button
+          type="submit"
+          disabled={loading || !hasChanges}
+          className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+        >
           {loading ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -212,6 +272,96 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
           )}
         </Button>
       </div>
+
+      {/* Danger Zone */}
+      <div className="border-t border-gray-200 pt-6 mt-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Danger Zone</h3>
+          <p className="text-sm text-red-700 mb-4">
+            Once you delete your app, there is no going back. This will permanently remove your app from the store and revoke all access tokens.
+          </p>
+          <Button
+            type="button"
+            onClick={() => setShowDeleteDialog(true)}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Delete App
+          </Button>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete App</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-700">
+                This will permanently delete <span className="font-semibold">{formData.name}</span> and remove it from the Vondera App Store. All access tokens will be revoked.
+              </p>
+
+              <div>
+                <Label htmlFor="delete-confirm">Type <span className="font-mono font-semibold">{formData.slug}</span> to confirm</Label>
+                <Input
+                  id="delete-confirm"
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder={formData.slug}
+                  className="mt-2"
+                />
+              </div>
+
+              {errors.delete && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-700">{errors.delete}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteDialog(false);
+                    setDeleteConfirmText('');
+                    setErrors({});
+                  }}
+                  disabled={deleting}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDeleteApp}
+                  disabled={deleteConfirmText !== formData.slug || deleting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete App'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

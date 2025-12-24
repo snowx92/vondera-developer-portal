@@ -21,6 +21,12 @@ export function EndpointsTab({ appId, onUpdate }: EndpointsTabProps) {
     form_update_endpoint: '',
     hasPendingChanges: false,
   });
+  const [originalSettings, setOriginalSettings] = useState<EndpointSettings>({
+    install_endpoint: '',
+    uninstall_endpoint: '',
+    form_update_endpoint: '',
+    hasPendingChanges: false,
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
@@ -34,6 +40,7 @@ export function EndpointsTab({ appId, onUpdate }: EndpointsTabProps) {
       const data = await settingsService.getEndpointSettings(appId);
       if (data) {
         setSettings(data);
+        setOriginalSettings(data);
       }
     } catch (error) {
       console.error('Failed to load endpoint settings:', error);
@@ -42,6 +49,12 @@ export function EndpointsTab({ appId, onUpdate }: EndpointsTabProps) {
       setLoading(false);
     }
   };
+
+  // Check if form has changes
+  const hasChanges =
+    settings.install_endpoint !== originalSettings.install_endpoint ||
+    settings.uninstall_endpoint !== originalSettings.uninstall_endpoint ||
+    settings.form_update_endpoint !== originalSettings.form_update_endpoint;
 
   const validateUrl = (url: string): boolean => {
     if (!url) return true; // Empty is allowed
@@ -209,7 +222,11 @@ export function EndpointsTab({ appId, onUpdate }: EndpointsTabProps) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={saving}>
+          <Button
+            type="submit"
+            disabled={saving || !hasChanges}
+            className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+          >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

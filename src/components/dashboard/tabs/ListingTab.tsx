@@ -5,7 +5,9 @@ import Image from 'next/image';
 import { settingsService } from '@/lib/services';
 import type { ListingSettings } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 interface ListingTabProps {
   appId: string;
@@ -16,6 +18,13 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<ListingSettings>({
+    name: '',
+    description: '',
+    category: '',
+    icon: '',
+    images: [],
+  });
+  const [originalSettings, setOriginalSettings] = useState<ListingSettings>({
     name: '',
     description: '',
     category: '',
@@ -38,6 +47,7 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
 
       if (settingsData) {
         setSettings(settingsData);
+        setOriginalSettings(settingsData);
         if (settingsData.icon) {
           setIconPreview(settingsData.icon);
         }
@@ -52,6 +62,13 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
       setLoading(false);
     }
   };
+
+  // Check if form has changes
+  const hasChanges =
+    settings.description !== originalSettings.description ||
+    settings.short_description !== originalSettings.short_description ||
+    settings.icon !== originalSettings.icon ||
+    JSON.stringify(settings.images) !== JSON.stringify(originalSettings.images);
 
   const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,9 +148,10 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
     try {
       setSaving(true);
       setSuccess(false);
-      // Only send description, icon, and images - name and category are handled in General Settings
+      // Only send description, short_description, icon, and images - name and category are handled in General Settings
       await settingsService.updateListingSettings(appId, {
         description: settings.description,
+        short_description: settings.short_description,
         icon: settings.icon,
         images: settings.images,
       });
@@ -179,19 +197,52 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
           </div>
         </div>
 
-        {/* Description */}
+        {/* Short Description */}
         <div>
-          <Label htmlFor="description">Description</Label>
-          <textarea
-            id="description"
-            value={settings.description}
-            onChange={(e) => setSettings({ ...settings, description: e.target.value })}
-            placeholder="Describe what your app does..."
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none"
+          <Label htmlFor="short_description">Short Description</Label>
+          <Input
+            id="short_description"
+            type="text"
+            value={settings.short_description || ''}
+            onChange={(e) => {
+              const value = e.target.value.slice(0, 80); // Limit to 80 chars
+              setSettings({ ...settings, short_description: value });
+            }}
+            placeholder="Brief one-liner about your app (max 80 characters)"
+            maxLength={80}
           />
           <p className="text-sm text-gray-500 mt-1">
-            This description will be shown in the Vondera App Store
+            {settings.short_description?.length || 0}/80 characters - Shown in app cards and search results
+          </p>
+        </div>
+
+        {/* Description */}
+        <div>
+          <Label htmlFor="description">Full Description</Label>
+          <div className="mt-2">
+            <RichTextEditor
+              value={settings.description}
+              onChange={(value) => setSettings({ ...settings, description: value })}
+              placeholder="Describe what your app does in detail..."
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Detailed description shown on the app&apos;s store page. You can use rich text formatting.
+          </p>
+        </div>
+
+        {/* Installation Instructions */}
+        <div>
+          <Label htmlFor="instructions">Installation & Setup Instructions</Label>
+          <div className="mt-2">
+            <RichTextEditor
+              value={settings.instructions || ''}
+              onChange={(value) => setSettings({ ...settings, instructions: value })}
+              placeholder="Provide step-by-step instructions on how to install and configure your app..."
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Help users get started with your app. Include setup steps, configuration details, and any prerequisites.
           </p>
         </div>
 
@@ -329,7 +380,11 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={saving}>
+          <Button
+            type="submit"
+            disabled={saving || !hasChanges}
+            className={hasChanges ? 'bg-vondera-purple hover:bg-vondera-purple-dark ring-2 ring-vondera-purple ring-offset-2' : ''}
+          >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

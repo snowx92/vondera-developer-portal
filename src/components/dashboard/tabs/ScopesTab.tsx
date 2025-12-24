@@ -16,6 +16,7 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
   const [saving, setSaving] = useState(false);
   const [availableScopes, setAvailableScopes] = useState<Scope[]>([]);
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
+  const [scopeReasons, setScopeReasons] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +32,7 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
 
       setAvailableScopes(scopesData);
       setSelectedScopes(settingsData?.scopes || []);
+      setScopeReasons(settingsData?.scope_reasons || {});
     } catch (err) {
       console.error('Failed to load scopes data:', err);
       setError('Failed to load scopes data');
@@ -71,7 +73,10 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
       setError(null);
       setSuccess(false);
 
-      await settingsService.updateScopeSettings(appId, { scopes: selectedScopes });
+      await settingsService.updateScopeSettings(appId, {
+        scopes: selectedScopes,
+        scope_reasons: scopeReasons
+      });
 
       setSuccess(true);
       onUpdate();
@@ -157,27 +162,53 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
                   {isCategorySelected ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 space-y-4">
                 {scopes.map((scope) => (
-                  <div
-                    key={scope.key}
-                    className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-                      selectedScopes.includes(scope.key)
-                        ? 'border-vondera-purple bg-purple-50/50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handleScopeToggle(scope.key)}
-                  >
-                    <Checkbox
-                      checked={selectedScopes.includes(scope.key)}
-                      onCheckedChange={() => handleScopeToggle(scope.key)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{scope.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{scope.description}</p>
-                      <p className="text-[10px] text-gray-400 font-mono mt-1.5">{scope.key}</p>
+                  <div key={scope.key} className="space-y-2">
+                    <div
+                      className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                        selectedScopes.includes(scope.key)
+                          ? 'border-vondera-purple bg-purple-50/50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleScopeToggle(scope.key)}
+                    >
+                      <Checkbox
+                        checked={selectedScopes.includes(scope.key)}
+                        onCheckedChange={() => handleScopeToggle(scope.key)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{scope.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{scope.description}</p>
+                        <p className="text-[10px] text-gray-400 font-mono mt-1.5">{scope.key}</p>
+                      </div>
                     </div>
+                    {selectedScopes.includes(scope.key) && (
+                      <div className="ml-9 mr-3">
+                        <label htmlFor={`reason-${scope.key}`} className="block text-xs font-medium text-gray-700 mb-1">
+                          Why do you need this permission?
+                        </label>
+                        <textarea
+                          id={`reason-${scope.key}`}
+                          value={scopeReasons[scope.key] || ''}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setScopeReasons(prev => ({
+                              ...prev,
+                              [scope.key]: e.target.value
+                            }));
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Explain why your app needs this permission..."
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          This helps reviewers understand your app&apos;s functionality
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

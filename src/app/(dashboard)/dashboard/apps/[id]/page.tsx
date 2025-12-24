@@ -231,7 +231,7 @@ export default function AppDetailPage() {
 
   // Static revenue data for demo
   const totalRevenue = app.totalRevenue || 24580;
-  const currentBalance = 8320;
+
 
   const handleStepClick = (stepId: string) => {
     setActiveTab(stepId === 'setup-form' ? 'setup' : stepId);
@@ -296,8 +296,7 @@ export default function AppDetailPage() {
             <span className="text-sm font-semibold text-green-600">{formatCurrency(totalRevenue)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">Balance</span>
-            <span className="text-sm font-semibold text-gray-900">{formatCurrency(currentBalance)}</span>
+
           </div>
         </div>
 
