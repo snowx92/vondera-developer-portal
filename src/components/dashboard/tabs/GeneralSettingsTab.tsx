@@ -19,6 +19,7 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
   const [formData, setFormData] = useState({
     name: settings?.name || '',
     category: settings?.category || '',
+    app_url: settings?.app_url || '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
@@ -32,6 +33,7 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
       setFormData({
         name: settings.name,
         category: settings.category,
+        app_url: settings.app_url,
       });
     }
   }, [settings]);
@@ -49,6 +51,24 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
     e.preventDefault();
     setErrors({});
     setSuccess(false);
+
+    // Validate app_url
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.app_url.trim()) {
+      newErrors.app_url = 'App URL is required';
+    } else {
+      try {
+        new URL(formData.app_url);
+      } catch {
+        newErrors.app_url = 'Please enter a valid URL';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -109,6 +129,24 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
           <p className="text-sm text-gray-500 mt-1">
             {categories.find((c) => c.key === formData.category)?.description}
           </p>
+        )}
+      </div>
+
+      {/* App URL */}
+      <div>
+        <Label htmlFor="app_url">App URL *</Label>
+        <Input
+          id="app_url"
+          type="url"
+          value={formData.app_url}
+          onChange={(e) => setFormData({ ...formData, app_url: e.target.value })}
+          placeholder="https://myapp.example.com"
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          The URL where your app is hosted
+        </p>
+        {errors.app_url && (
+          <p className="text-sm text-red-600 mt-1">{errors.app_url}</p>
         )}
       </div>
 

@@ -15,12 +15,6 @@ interface PricingTabProps {
 const AVAILABLE_COUNTRIES = [
   { code: 'EG', name: 'Egypt', currency: 'EGP' },
   { code: 'US', name: 'United States', currency: 'USD' },
-  { code: 'SA', name: 'Saudi Arabia', currency: 'SAR' },
-  { code: 'AE', name: 'United Arab Emirates', currency: 'AED' },
-  { code: 'KW', name: 'Kuwait', currency: 'KWD' },
-  { code: 'QA', name: 'Qatar', currency: 'QAR' },
-  { code: 'BH', name: 'Bahrain', currency: 'BHD' },
-  { code: 'OM', name: 'Oman', currency: 'OMR' },
 ];
 
 export function PricingTab({ appId, onUpdate }: PricingTabProps) {

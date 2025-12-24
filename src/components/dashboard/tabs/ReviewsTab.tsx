@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { reviewsService } from '@/lib/services';
-import type { ReviewRequest, App, Timestamp } from '@/lib/types/api.types';
+import type { ReviewRequest, App, Timestamp, AppStepsResponse } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
 
 interface ReviewsTabProps {
   appId: string;
   app: App;
+  appSteps?: AppStepsResponse | null;
   onUpdate: () => void;
 }
 
@@ -37,7 +38,7 @@ const requestTypeConfig: Record<string, { label: string; icon: React.ReactElemen
   },
 };
 
-export function ReviewsTab({ appId, app, onUpdate }: ReviewsTabProps) {
+export function ReviewsTab({ appId, app, appSteps, onUpdate }: ReviewsTabProps) {
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<ReviewRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null);
@@ -124,8 +125,8 @@ export function ReviewsTab({ appId, app, onUpdate }: ReviewsTabProps) {
     }).format(date);
   };
 
-  const canPublish = app.status === 'DRAFT' || app.status === 'REJECTED';
-  const canUpdate = app.status === 'PUBLISHED' || app.status === 'APPROVED';
+  const canPublish = (app.status === 'DRAFT' || app.status === 'PENDING' || app.status === 'REJECTED') && (appSteps?.readyForPublish === true);
+  const canUpdate = (app.status === 'PUBLISHED' || app.status === 'APPROVED') && (appSteps?.haveUpdate === true);
   const hasPendingRequest = requests.some(r => r.status === 'PENDING');
 
   return (
@@ -186,6 +187,7 @@ export function ReviewsTab({ appId, app, onUpdate }: ReviewsTabProps) {
         </Button>
       </div>
 
+      {/* Status Messages */}
       {hasPendingRequest && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex gap-3">
@@ -193,6 +195,22 @@ export function ReviewsTab({ appId, app, onUpdate }: ReviewsTabProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-sm text-blue-700">You have a pending review request. Please wait for it to be reviewed before submitting a new request.</p>
+          </div>
+        </div>
+      )}
+
+      {!canPublish && !hasPendingRequest && (app.status === 'DRAFT' || app.status === 'PENDING' || app.status === 'REJECTED') && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex gap-3">
+            <svg className="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-yellow-900 mb-1">Complete all required steps to publish</p>
+              <p className="text-sm text-yellow-700">
+                You need to complete {appSteps ? appSteps.totalSteps - appSteps.completedSteps : 0} more step(s) before you can submit your app for review.
+              </p>
+            </div>
           </div>
         </div>
       )}

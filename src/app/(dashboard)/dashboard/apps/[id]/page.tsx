@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { appsService, settingsService } from '@/lib/services';
-import type { App, GeneralSettings, AppStepsResponse } from '@/lib/types/api.types';
+import { appsService, settingsService, reviewsService } from '@/lib/services';
+import type { App, GeneralSettings, AppStepsResponse, ReviewRequest } from '@/lib/types/api.types';
 import { AnalyticsTab } from '@/components/dashboard/tabs/AnalyticsTab';
 import { GeneralSettingsTab } from '@/components/dashboard/tabs/GeneralSettingsTab';
 import { ListingTab } from '@/components/dashboard/tabs/ListingTab';
@@ -161,6 +161,7 @@ export default function AppDetailPage() {
   const [app, setApp] = useState<App | null>(null);
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings | null>(null);
   const [appSteps, setAppSteps] = useState<AppStepsResponse | null>(null);
+  const [reviewRequests, setReviewRequests] = useState<ReviewRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('general');
@@ -170,15 +171,17 @@ export default function AppDetailPage() {
       setLoading(true);
       setError(null);
 
-      const [appData, settingsData, stepsData] = await Promise.all([
+      const [appData, settingsData, stepsData, requestsData] = await Promise.all([
         appsService.getAppById(appId),
         settingsService.getGeneralSettings(appId),
         appsService.getAppSteps(appId),
+        reviewsService.getReviewRequests(appId),
       ]);
 
       setApp(appData);
       setGeneralSettings(settingsData);
       setAppSteps(stepsData);
+      setReviewRequests(requestsData || []);
 
       // Set initial tab based on app status
       if (appData?.status === 'PUBLISHED' || appData?.status === 'APPROVED') {
@@ -223,6 +226,8 @@ export default function AppDetailPage() {
   const status = statusConfig[app.status] || statusConfig.DRAFT;
   const appType = appTypeConfig[app.app_type] || appTypeConfig.FREE;
   const isPublished = app.status === 'PUBLISHED' || app.status === 'APPROVED';
+  const hasPendingRequest = reviewRequests.some(r => r.status === 'PENDING');
+  const isEditingBlocked = hasPendingRequest && activeTab !== 'reviews' && activeTab !== 'analytics';
 
   // Static revenue data for demo
   const totalRevenue = app.totalRevenue || 24580;
@@ -233,15 +238,9 @@ export default function AppDetailPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
-      {/* Progress Bar - Only show for non-published apps */}
-      {!isPublished && appSteps && (
-        <AppStepsProgress steps={appSteps} onStepClick={handleStepClick} />
-      )}
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className="flex h-[calc(100vh-64px)]">
+      {/* Left Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
           {/* App Header in Sidebar */}
           <div className="p-4 border-b border-gray-200">
           <Link
@@ -368,51 +367,83 @@ export default function AppDetailPage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-6">
-          {/* Content Header */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {menuItems.find(item => item.id === activeTab)?.label}
-            </h2>
-          </div>
+        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+          {/* Progress Bar - Only show for non-published apps */}
+          {!isPublished && appSteps && (
+            <AppStepsProgress steps={appSteps} onStepClick={handleStepClick} />
+          )}
 
-          {/* Tab Content */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            {activeTab === 'analytics' && (
-              <AnalyticsTab app={app} />
-            )}
-            {activeTab === 'general' && (
-              <GeneralSettingsTab appId={app.id} settings={generalSettings} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'listing' && (
-              <ListingTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'endpoints' && (
-              <EndpointsTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'scopes' && (
-              <ScopesTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'webhooks' && (
-              <WebhooksTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'pricing' && (
-              <PricingTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'countries' && (
-              <CountriesTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'setup' && (
-              <SetupFormTab appId={app.id} onUpdate={loadAppData} />
-            )}
-            {activeTab === 'reviews' && (
-              <ReviewsTab appId={app.id} app={app} onUpdate={loadAppData} />
-            )}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Content Header */}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {menuItems.find(item => item.id === activeTab)?.label}
+              </h2>
+            </div>
+
+            {/* Tab Content */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 relative">
+              {activeTab === 'analytics' && (
+                <AnalyticsTab app={app} />
+              )}
+              {activeTab === 'general' && (
+                <GeneralSettingsTab appId={app.id} settings={generalSettings} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'listing' && (
+                <ListingTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'endpoints' && (
+                <EndpointsTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'scopes' && (
+                <ScopesTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'webhooks' && (
+                <WebhooksTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'pricing' && (
+                <PricingTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'countries' && (
+                <CountriesTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'setup' && (
+                <SetupFormTab appId={app.id} onUpdate={loadAppData} />
+              )}
+              {activeTab === 'reviews' && (
+                <ReviewsTab appId={app.id} app={app} appSteps={appSteps} onUpdate={loadAppData} />
+              )}
+
+              {/* Blur Overlay for Pending Review */}
+              {isEditingBlocked && (
+                <div className="absolute inset-0 backdrop-blur-sm bg-white/80 rounded-xl flex items-center justify-center z-10">
+                  <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-8 max-w-md mx-4 text-center">
+                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      App Under Review
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      Your app is currently being reviewed. You cannot make changes until the review is complete. Please check the Reviews & Publish tab for updates.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('reviews')}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-vondera-purple text-white rounded-lg hover:bg-vondera-purple-dark transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Go to Reviews
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         </div>
       </div>
-    </div>
   );
 }

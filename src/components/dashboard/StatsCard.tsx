@@ -16,17 +16,19 @@ const colorConfig = {
 
 export function StatsCard({ title, value, icon, trend, color = 'purple' }: StatsCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 transition-colors">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorConfig[color]}`}>
+    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-vondera-purple/30 transition-all hover:shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${colorConfig[color]}`}>
           {icon}
         </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-gray-500 mb-0.5">{title}</p>
+          <p className="text-xl font-bold text-gray-900">{value}</p>
+          {trend && (
+            <p className="text-xs text-green-600 font-medium mt-0.5">{trend}</p>
+          )}
+        </div>
       </div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-1">{value}</h3>
-      <p className="text-sm text-gray-600 mb-2">{title}</p>
-      {trend && (
-        <p className="text-xs text-green-600 font-medium">{trend}</p>
-      )}
     </div>
   );
 }

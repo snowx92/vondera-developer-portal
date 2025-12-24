@@ -81,15 +81,18 @@ export function Sidebar() {
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-3">
           <Image
-            src="/vondera-logo.svg"
+            src="/logo.png"
             alt="Vondera"
-            width={32}
-            height={32}
-            className="w-8 h-8"
+            width={40}
+            height={40}
+            className="w-10 h-10 object-contain"
           />
-          <span className="font-semibold text-lg text-gray-900">Developer Portal</span>
+          <div className="flex flex-col">
+            <span className="font-bold text-lg text-gray-900">Vondera</span>
+            <span className="text-xs text-gray-500">Developer Portal</span>
+          </div>
         </Link>
       </div>
 
