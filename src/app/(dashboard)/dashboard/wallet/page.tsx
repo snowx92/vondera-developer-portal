@@ -270,12 +270,12 @@ export default function WalletPage() {
           <div className="text-4xl font-bold mb-2">
             {new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(balance)}
           </div>
-          <Button
+          <button
             onClick={() => setShowPayoutDialog(true)}
-            className="mt-4 bg-white text-green-600 hover:bg-green-50 hover:text-green-700 w-full border border-green-200"
+            className="mt-4 w-full bg-white text-green-600 hover:bg-green-50 hover:text-green-700 px-4 py-2 rounded-lg font-medium transition-colors border-2 border-white/20"
           >
             Request Payout
-          </Button>
+          </button>
         </div>
 
         {/* Pending Balance */}
