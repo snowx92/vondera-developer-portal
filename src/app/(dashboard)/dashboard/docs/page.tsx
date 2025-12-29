@@ -135,7 +135,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`}</code></pre
                   Required
                 </span>
               </td>
-              <td className="py-2 text-gray-600">Your app's client ID</td>
+              <td className="py-2 text-gray-600">Your app&apos;s client ID</td>
             </tr>
             <tr>
               <td className="py-2 font-mono text-xs">clientSecret</td>
@@ -144,7 +144,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`}</code></pre
                   Required
                 </span>
               </td>
-              <td className="py-2 text-gray-600">Your app's client secret</td>
+              <td className="py-2 text-gray-600">Your app&apos;s client secret</td>
             </tr>
             <tr>
               <td className="py-2 font-mono text-xs">appId</td>
@@ -162,7 +162,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`}</code></pre
                   Optional
                 </span>
               </td>
-              <td className="py-2 text-gray-600">Language locale (default: 'en')</td>
+              <td className="py-2 text-gray-600">Language locale (default: &apos;en&apos;)</td>
             </tr>
             <tr>
               <td className="py-2 font-mono text-xs">storefrontId</td>
@@ -180,7 +180,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`}</code></pre
                   Optional
                 </span>
               </td>
-              <td className="py-2 text-gray-600">Timezone (default: 'Africa/Cairo')</td>
+              <td className="py-2 text-gray-600">Timezone (default: &apos;Africa/Cairo&apos;)</td>
             </tr>
           </tbody>
         </table>
