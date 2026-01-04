@@ -228,6 +228,26 @@ export function GeneralSettingsTab({ appId, settings, app, onUpdate }: GeneralSe
             </p>
             <div className="space-y-4">
               <div>
+                <Label className="text-gray-700 font-medium">App ID</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="flex-1 px-4 py-3 bg-white border-2 border-vondera-purple/30 rounded-lg text-sm font-mono text-gray-900 break-all">
+                    {app.id}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(app.id);
+                    }}
+                    className="px-3 py-3 bg-white border-2 border-vondera-purple/30 text-vondera-purple hover:bg-vondera-purple hover:text-white rounded-lg transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div>
                 <Label className="text-gray-700 font-medium">Client ID</Label>
                 <div className="mt-1 flex items-center gap-2">
                   <div className="flex-1 px-4 py-3 bg-white border-2 border-vondera-purple/30 rounded-lg text-sm font-mono text-gray-900 break-all">
