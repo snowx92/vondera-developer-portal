@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { settingsService, appsService } from '@/lib/services';
-import type { GeneralSettings, AppCategory } from '@/lib/types/api.types';
+import type { GeneralSettings, AppCategory, App } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label';
 interface GeneralSettingsTabProps {
   appId: string;
   settings: GeneralSettings | null;
+  app?: App | null;
   onUpdate: () => void;
 }
 
-export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSettingsTabProps) {
+export function GeneralSettingsTab({ appId, settings, app, onUpdate }: GeneralSettingsTabProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<AppCategory[]>([]);
@@ -211,6 +212,75 @@ export function GeneralSettingsTab({ appId, settings, onUpdate }: GeneralSetting
           <p className="text-sm text-red-600 mt-1">{errors.slug}</p>
         )}
       </div>
+
+      {/* API Credentials - Highlighted Section */}
+      {app?.client_id && app?.client_secret && (
+        <div className="border-t border-gray-200 pt-6">
+          <div className="bg-gradient-to-br from-vondera-purple/5 to-vondera-purple-dark/5 border-2 border-vondera-purple/20 rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-5 h-5 text-vondera-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              <h4 className="font-semibold text-gray-900">API Credentials</h4>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Use these credentials to authenticate your app with the Vondera API. Keep them secure and never share them publicly.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-gray-700 font-medium">Client ID</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="flex-1 px-4 py-3 bg-white border-2 border-vondera-purple/30 rounded-lg text-sm font-mono text-gray-900 break-all">
+                    {app.client_id}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(app.client_id);
+                      // Could add a toast notification here
+                    }}
+                    className="px-3 py-3 bg-white border-2 border-vondera-purple/30 text-vondera-purple hover:bg-vondera-purple hover:text-white rounded-lg transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-gray-700 font-medium">Client Secret</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="flex-1 px-4 py-3 bg-white border-2 border-vondera-purple/30 rounded-lg text-sm font-mono text-gray-900 break-all">
+                    {app.client_secret}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(app.client_secret);
+                      // Could add a toast notification here
+                    }}
+                    className="px-3 py-3 bg-white border-2 border-vondera-purple/30 text-vondera-purple hover:bg-vondera-purple hover:text-white rounded-lg transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="text-xs text-amber-800">
+                <strong>Security Warning:</strong> Keep these credentials secret. Do not commit them to version control or expose them in client-side code.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Read-only fields */}
       <div className="border-t border-gray-200 pt-6">

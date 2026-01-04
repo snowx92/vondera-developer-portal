@@ -92,6 +92,8 @@ export interface App {
   category: string;
   app_url: string;
   oauth_redirect_uri: string;
+  client_id: string;
+  client_secret: string;
   scopes: string[];
   webhook_events: WebhookEvent[];
   app_type: AppType;

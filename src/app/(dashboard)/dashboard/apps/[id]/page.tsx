@@ -386,7 +386,7 @@ export default function AppDetailPage() {
                 <AnalyticsTab app={app} />
               )}
               {activeTab === 'general' && (
-                <GeneralSettingsTab appId={app.id} settings={generalSettings} onUpdate={loadAppData} />
+                <GeneralSettingsTab appId={app.id} settings={generalSettings} app={app} onUpdate={loadAppData} />
               )}
               {activeTab === 'listing' && (
                 <ListingTab appId={app.id} onUpdate={loadAppData} />
