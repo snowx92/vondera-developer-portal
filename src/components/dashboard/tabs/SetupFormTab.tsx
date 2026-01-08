@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { settingsService } from '@/lib/services';
-import type { SetupFormSettings, SetupFormField } from '@/lib/types/api.types';
+import type { SetupFormField } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,8 @@ const FIELD_TYPES = [
   { value: 'number', label: 'Number' },
   { value: 'email', label: 'Email' },
   { value: 'url', label: 'URL' },
-  { value: 'select', label: 'Select' },
+  { value: 'dropdown', label: 'Dropdown' },
+  { value: 'amount', label: 'Amount' },
   { value: 'checkbox', label: 'Checkbox' },
 ];
 
@@ -86,6 +87,9 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
       }
       if (!field.label.trim()) {
         newErrors[`label_${index}`] = 'Field label is required';
+      }
+      if (field.type === 'dropdown' && (!field.options || field.options.length === 0)) {
+        newErrors[`options_${index}`] = 'At least one option is required for dropdown fields';
       }
     });
 
@@ -209,16 +213,44 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
                     </div>
 
                     {/* Field Placeholder */}
-                    <div>
-                      <Label htmlFor={`placeholder_${index}`}>Placeholder (Optional)</Label>
-                      <Input
-                        id={`placeholder_${index}`}
-                        type="text"
-                        value={field.placeholder || ''}
-                        onChange={(e) => updateField(index, { placeholder: e.target.value })}
-                        placeholder="Enter placeholder text"
-                      />
-                    </div>
+                    {field.type !== 'checkbox' && (
+                      <div>
+                        <Label htmlFor={`placeholder_${index}`}>Placeholder (Optional)</Label>
+                        <Input
+                          id={`placeholder_${index}`}
+                          type="text"
+                          value={field.placeholder || ''}
+                          onChange={(e) => updateField(index, { placeholder: e.target.value })}
+                          placeholder="Enter placeholder text"
+                        />
+                      </div>
+                    )}
+
+                    {/* Options for Dropdown */}
+                    {field.type === 'dropdown' && (
+                      <div>
+                        <Label htmlFor={`options_${index}`}>Options *</Label>
+                        <textarea
+                          id={`options_${index}`}
+                          value={field.options?.join('\n') || ''}
+                          onChange={(e) => {
+                            const options = e.target.value.split('\n').filter(opt => opt.trim());
+                            updateField(index, { options });
+                          }}
+                          placeholder="Enter one option per line&#10;Option 1&#10;Option 2&#10;Option 3"
+                          rows={4}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent ${
+                            errors[`options_${index}`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                        {errors[`options_${index}`] && (
+                          <p className="text-sm text-red-600 mt-1">{errors[`options_${index}`]}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter each option on a new line
+                        </p>
+                      </div>
+                    )}
 
                     {/* Required Checkbox */}
                     <div className="flex items-center gap-2">

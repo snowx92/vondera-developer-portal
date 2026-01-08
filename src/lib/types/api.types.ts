@@ -67,7 +67,7 @@ export interface PricingSettings {
 
 export interface SetupFormField {
   name: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number' | 'email' | 'url';
+  type: 'text' | 'textarea' | 'dropdown' | 'amount' | 'checkbox' | 'number' | 'email' | 'url';
   label: string;
   placeholder?: string;
   required: boolean;
