@@ -1,5 +1,5 @@
 import { exchangeCustomTokenForIdToken, firebaseSignOut, getIdToken } from '../config/firebase';
-import type { DeveloperProfile } from '../types/api.types';
+import type { DeveloperProfile, UpdateProfileRequest, ChangePasswordRequest } from '../types/api.types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
