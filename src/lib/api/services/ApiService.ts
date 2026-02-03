@@ -31,22 +31,12 @@ export class ApiService {
     const query = new URLSearchParams(queryParams).toString();
     const fullUrl = query ? `${url}?${query}` : url;
 
-    // Get token from session manager
+    // Get a fresh token (will refresh if needed) from session manager
     const token = await this.sessionManager.getCurrentToken();
     if (!token) {
-      // Try to get token from localStorage
-      const storedToken = this.sessionManager.getToken();
-      if (!storedToken) {
-        // Don't redirect here - let the layout handle authentication
-        console.log('⚠️ ApiService: No token found, throwing error');
-        throw new Error("Please log in to continue");
-      }
-      // Use stored token
-      const staticHeaders = {
-        Authorization: `Bearer ${storedToken}`,
-        Language: "en",
-      };
-      return this.makeRequest(fullUrl, method, body, staticHeaders, customHeaders);
+      // Don't redirect here - let the layout handle authentication
+      console.log('⚠️ ApiService: No token found, throwing error');
+      throw new Error("Please log in to continue");
     }
 
     const staticHeaders = {

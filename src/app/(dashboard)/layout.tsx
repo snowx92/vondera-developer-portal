@@ -26,10 +26,8 @@ export default function DashboardLayout({
       console.log('🔍 auth_token value:', localStorage.getItem('auth_token') ? 'EXISTS' : 'NULL');
 
       if (!token) {
-        console.log('❌ No token found, waiting 10 seconds before redirecting to login...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 10000);
+        console.log('❌ No token found, redirecting to login...');
+        router.push('/login');
       } else {
         console.log('✅ Token found, user is authenticated');
         setIsAuthenticated(true);

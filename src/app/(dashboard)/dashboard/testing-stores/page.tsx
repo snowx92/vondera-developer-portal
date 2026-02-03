@@ -3,16 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-interface TestStore {
-  id: string;
-  storeName: string;
-  storeEmail: string;
-  storeUrl: string;
-  connectedAt: string;
-  status: 'active' | 'pending' | 'disconnected';
-  appsAccess: number;
-}
+import { AppsService } from '@/lib/services/apps.service';
+import type { TestStore } from '@/lib/types/api.types';
 
 export default function TestingStoresPage() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +15,8 @@ export default function TestingStoresPage() {
   const [success, setSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const appsService = new AppsService();
+
   useEffect(() => {
     loadStores();
   }, []);
@@ -30,46 +24,15 @@ export default function TestingStoresPage() {
   const loadStores = async () => {
     try {
       setLoading(true);
-      // TODO: Load from API when available
-      const savedStores = localStorage.getItem('testing_stores');
-      if (savedStores) {
-        setStores(JSON.parse(savedStores));
-      } else {
-        // Mock data for demonstration
-        const mockStores: TestStore[] = [
-          {
-            id: '1',
-            storeName: 'Test Store Alpha',
-            storeEmail: 'alpha@teststore.com',
-            storeUrl: 'https://alpha.vondera.store',
-            connectedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'active',
-            appsAccess: 3,
-          },
-          {
-            id: '2',
-            storeName: 'Beta Testing Store',
-            storeEmail: 'beta@teststore.com',
-            storeUrl: 'https://beta.vondera.store',
-            connectedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'active',
-            appsAccess: 5,
-          },
-          {
-            id: '3',
-            storeName: 'QA Store',
-            storeEmail: 'qa@teststore.com',
-            storeUrl: 'https://qa.vondera.store',
-            connectedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'pending',
-            appsAccess: 0,
-          },
-        ];
-        setStores(mockStores);
-        localStorage.setItem('testing_stores', JSON.stringify(mockStores));
+      const response = await appsService.getTestFlightStores();
+      if (response) {
+        setStores(response.stores);
       }
     } catch (error) {
       console.error('Failed to load stores:', error);
+      setErrors({
+        load: error instanceof Error ? error.message : 'Failed to load stores',
+      });
     } finally {
       setLoading(false);
     }
@@ -80,10 +43,10 @@ export default function TestingStoresPage() {
 
     try {
       setLoading(true);
-      // TODO: Call API to disconnect store
-      const updatedStores = stores.filter((s) => s.id !== storeToRemove.id);
+      await appsService.removeTestFlightStore(storeToRemove.store_id);
+
+      const updatedStores = stores.filter((s) => s.store_id !== storeToRemove.store_id);
       setStores(updatedStores);
-      localStorage.setItem('testing_stores', JSON.stringify(updatedStores));
 
       setShowRemoveDialog(false);
       setStoreToRemove(null);
@@ -100,31 +63,17 @@ export default function TestingStoresPage() {
 
   const filteredStores = stores.filter(
     (store) =>
-      store.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      store.storeEmail.toLowerCase().includes(searchQuery.toLowerCase())
+      store.store_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      store.store_email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getStatusBadge = (status: TestStore['status']) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            Active
-          </span>
-        );
-      case 'pending':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            Pending
-          </span>
-        );
-      case 'disconnected':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            Disconnected
-          </span>
-        );
-    }
+  const formatBoundAt = (boundAt: { _seconds: number; _nanoseconds: number }) => {
+    const date = new Date(boundAt._seconds * 1000 + boundAt._nanoseconds / 1000000);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   return (
@@ -141,6 +90,13 @@ export default function TestingStoresPage() {
       {success && (
         <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
           Operation completed successfully!
+        </div>
+      )}
+
+      {/* Error Message */}
+      {errors.submit && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          {errors.submit}
         </div>
       )}
 
@@ -169,63 +125,24 @@ export default function TestingStoresPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Stores</p>
-              <p className="text-3xl font-bold text-gray-900">{stores.length}</p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <svg className="w-8 h-8 text-vondera-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Active Stores</p>
-              <p className="text-3xl font-bold text-green-600">
-                {stores.filter((s) => s.status === 'active').length}
-              </p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Pending Requests</p>
-              <p className="text-3xl font-bold text-yellow-600">
-                {stores.filter((s) => s.status === 'pending').length}
-              </p>
-            </div>
-            <div className="bg-yellow-100 p-3 rounded-lg">
-              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Stores List */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Connected Stores</h2>
         </div>
 
-        {loading ? (
+        {loading && stores.length === 0 ? (
           <div className="px-6 py-12 text-center text-gray-500">Loading stores...</div>
+        ) : errors.load ? (
+          <div className="px-6 py-12 text-center text-red-500">
+            {errors.load}
+            <button
+              onClick={loadStores}
+              className="mt-2 text-vondera-purple hover:underline block"
+            >
+              Try again
+            </button>
+          </div>
         ) : filteredStores.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <svg
@@ -257,10 +174,10 @@ export default function TestingStoresPage() {
                     Store
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Country
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Apps Access
+                    Merchant ID
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Connected At
@@ -272,42 +189,36 @@ export default function TestingStoresPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredStores.map((store) => (
-                  <tr key={store.id} className="hover:bg-gray-50">
+                  <tr key={store.store_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-6 h-6 text-vondera-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
+                        <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center overflow-hidden">
+                          {store.logo ? (
+                            <img
+                              src={store.logo}
+                              alt={store.store_name}
+                              className="h-10 w-10 object-cover"
+                            />
+                          ) : (
+                            <svg className="w-6 h-6 text-vondera-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                          )}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{store.storeName}</div>
-                          <div className="text-sm text-gray-500">{store.storeEmail}</div>
-                          {store.storeUrl && (
-                            <a
-                              href={store.storeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-vondera-purple hover:underline"
-                            >
-                              {store.storeUrl}
-                            </a>
-                          )}
+                          <div className="text-sm font-medium text-gray-900">{store.store_name}</div>
+                          <div className="text-sm text-gray-500">{store.store_email || 'No email'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(store.status)}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {store.appsAccess} {store.appsAccess === 1 ? 'app' : 'apps'}
+                      {store.country}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(store.connectedAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {store.merchant_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatBoundAt(store.bound_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -347,7 +258,7 @@ export default function TestingStoresPage() {
             </div>
 
             <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to remove <strong>{storeToRemove.storeName}</strong>? This store will no longer be able to test your unpublished apps.
+              Are you sure you want to remove <strong>{storeToRemove.store_name}</strong>? This store will no longer be able to test your unpublished apps.
             </p>
 
             <div className="flex gap-3">
@@ -376,3 +287,4 @@ export default function TestingStoresPage() {
     </div>
   );
 }
+

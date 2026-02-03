@@ -7,6 +7,8 @@ import type {
   CreateAppRequest,
   PublishStep,
   AppStepsResponse,
+  PerformanceOverview,
+  TestStoreResponse,
 } from '../types/api.types';
 
 /**
@@ -95,5 +97,46 @@ export class AppsService extends ApiService {
    */
   async deleteApp(appId: string): Promise<void> {
     await this.delete(`/apps/${appId}`);
+  }
+
+  /**
+   * Get analytics performance overview for an app
+   * @param appId - The app ID or 'all' for all apps
+   * @param from - Start date (YYYY-MM-DD)
+   * @param to - End date (YYYY-MM-DD)
+   * @returns Promise<PerformanceOverview>
+   */
+  async getPerformanceOverview(appId: string = 'all', from?: string, to?: string): Promise<PerformanceOverview | null> {
+    const queryParams: Record<string, string> = {};
+    if (from) queryParams.from = from;
+    if (to) queryParams.to = to;
+
+    // Use different endpoint path for all apps vs specific app
+    const endpoint = appId === 'all'
+      ? '/analytics/performance-overview'
+      : `/apps/${appId}/analytics/performance-overview`;
+
+    return await this.get<PerformanceOverview>(endpoint, queryParams);
+  }
+
+  // ============================================
+  // Test Flight / Testing Stores APIs
+  // ============================================
+
+  /**
+   * Get all test flight stores for the current developer
+   * @returns Promise<TestStoreResponse>
+   */
+  async getTestFlightStores(): Promise<TestStoreResponse | null> {
+    return await this.get<TestStoreResponse>('/test-flight/stores');
+  }
+
+  /**
+   * Remove a test flight store
+   * @param storeId - The store ID to remove
+   * @returns Promise<void>
+   */
+  async removeTestFlightStore(storeId: string): Promise<void> {
+    await this.delete(`/test-flight/stores/${storeId}`);
   }
 }

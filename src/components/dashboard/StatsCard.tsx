@@ -3,7 +3,7 @@ interface StatsCardProps {
   value: string;
   icon: React.ReactNode;
   trend?: string;
-  color?: 'purple' | 'green' | 'yellow' | 'gray' | 'blue';
+  color?: 'purple' | 'green' | 'yellow' | 'gray' | 'blue' | 'red';
 }
 
 const colorConfig = {
@@ -12,6 +12,7 @@ const colorConfig = {
   yellow: 'bg-yellow-100 text-yellow-600',
   gray: 'bg-gray-100 text-gray-600',
   blue: 'bg-blue-100 text-blue-600',
+  red: 'bg-red-100 text-red-600',
 };
 
 export function StatsCard({ title, value, icon, trend, color = 'purple' }: StatsCardProps) {

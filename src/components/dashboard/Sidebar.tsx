@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -96,24 +97,80 @@ const resourcesNav = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Check if we're on an app details page
+  const isAppDetailsPage = pathname?.match(/^\/dashboard\/apps\/[^\/]+$/);
+
+  // Initialize collapsed state from localStorage and auto-collapse for app pages
+  useEffect(() => {
+    const savedCollapsed = localStorage.getItem('sidebar_collapsed');
+    if (savedCollapsed !== null) {
+      setIsCollapsed(savedCollapsed === 'true');
+    } else if (isAppDetailsPage) {
+      // Auto-collapse on app details page
+      setIsCollapsed(true);
+    }
+  }, []);
+
+  // Auto-collapse when navigating to app details page
+  useEffect(() => {
+    if (isAppDetailsPage && !isCollapsed) {
+      setIsCollapsed(true);
+      localStorage.setItem('sidebar_collapsed', 'true');
+    }
+  }, [isAppDetailsPage, isCollapsed]);
+
+  const toggleSidebar = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('sidebar_collapsed', String(newState));
+  };
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className={cn(
+      'bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
+      isCollapsed ? 'w-20' : 'w-64'
+    )}>
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-gray-200">
-        <Link href="/dashboard" className="flex items-center gap-3">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
+        <Link href="/dashboard" className={cn("flex items-center gap-3", isCollapsed && "justify-center w-full")}>
           <Image
             src="/logo.png"
             alt="Vondera"
             width={40}
             height={40}
-            className="w-10 h-10 object-contain"
+            className="w-10 h-10 object-contain flex-shrink-0"
           />
-          <div className="flex flex-col">
-            <span className="font-bold text-lg text-gray-900">Vondera</span>
-            <span className="text-xs text-gray-500">Developer Portal</span>
-          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="font-bold text-lg text-gray-900">Vondera</span>
+              <span className="text-xs text-gray-500">Developer Portal</span>
+            </div>
+          )}
         </Link>
+      </div>
+
+      {/* Collapse Button */}
+      <div className="px-3 py-2 border-b border-gray-200">
+        <button
+          onClick={toggleSidebar}
+          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+              <span className="ml-2 text-sm font-medium">Collapse</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Navigation */}
@@ -130,23 +187,33 @@ export function Sidebar() {
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-purple-50 text-vondera-purple'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+                isCollapsed && 'justify-center'
               )}
+              title={isCollapsed ? item.name : undefined}
             >
               <span className={isActive ? 'text-vondera-purple' : 'text-gray-400'}>
                 {item.icon}
               </span>
-              {item.name}
+              {!isCollapsed && item.name}
             </Link>
           );
         })}
 
         {/* Divider */}
-        <div className="pt-4 pb-2">
-          <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Resources
-          </p>
-        </div>
+        {!isCollapsed && (
+          <div className="pt-4 pb-2">
+            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Resources
+            </p>
+          </div>
+        )}
+
+        {isCollapsed && (
+          <div className="pt-4 pb-2">
+            <div className="border-t border-gray-200"></div>
+          </div>
+        )}
 
         {resourcesNav.map((item) => {
           const isActive = pathname === item.href;
@@ -160,32 +227,36 @@ export function Sidebar() {
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-purple-50 text-vondera-purple'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900',
+                isCollapsed && 'justify-center'
               )}
+              title={isCollapsed ? item.name : undefined}
               {...(isExternal && { target: '_blank', rel: 'noopener noreferrer' })}
             >
               <span className={isActive ? 'text-vondera-purple' : 'text-gray-400'}>
                 {item.icon}
               </span>
-              {item.name}
+              {!isCollapsed && item.name}
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="bg-purple-50 rounded-lg p-3">
-          <p className="text-xs font-medium text-gray-900 mb-1">Need help?</p>
-          <p className="text-xs text-gray-600 mb-2">Check our documentation</p>
-          <Link
-            href="/dashboard/docs"
-            className="text-xs font-medium text-vondera-purple hover:text-vondera-purple-dark"
-          >
-            View docs →
-          </Link>
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-200">
+          <div className="bg-purple-50 rounded-lg p-3">
+            <p className="text-xs font-medium text-gray-900 mb-1">Need help?</p>
+            <p className="text-xs text-gray-600 mb-2">Check our documentation</p>
+            <Link
+              href="/dashboard/docs"
+              className="text-xs font-medium text-vondera-purple hover:text-vondera-purple-dark"
+            >
+              View docs →
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

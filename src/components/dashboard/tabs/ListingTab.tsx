@@ -20,6 +20,7 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const [settings, setSettings] = useState<ListingSettings>({
     name: '',
     description: '',
+    short_description: '',
     category: '',
     icon: '',
     images: [],
@@ -27,6 +28,7 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const [originalSettings, setOriginalSettings] = useState<ListingSettings>({
     name: '',
     description: '',
+    short_description: '',
     category: '',
     icon: '',
     images: [],
@@ -145,9 +147,26 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate short_description
+    const newErrors: Record<string, string> = {};
+
+    if (!settings.short_description || settings.short_description.trim().length === 0) {
+      newErrors.short_description = 'Short description is required';
+    } else if (settings.short_description.trim().length < 10) {
+      newErrors.short_description = 'Short description must be at least 10 characters';
+    } else if (settings.short_description.length > 80) {
+      newErrors.short_description = 'Short description must not exceed 80 characters';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     try {
       setSaving(true);
       setSuccess(false);
+      setErrors({});
       // Only send description, short_description, icon, and images - name and category are handled in General Settings
       await settingsService.updateListingSettings(appId, {
         description: settings.description,
@@ -199,21 +218,37 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
 
         {/* Short Description */}
         <div>
-          <Label htmlFor="short_description">Short Description</Label>
+          <Label htmlFor="short_description">
+            Short Description <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="short_description"
             type="text"
-            value={settings.short_description || ''}
+            value={settings.short_description}
             onChange={(e) => {
               const value = e.target.value.slice(0, 80); // Limit to 80 chars
               setSettings({ ...settings, short_description: value });
+              // Clear error when user types
+              if (errors.short_description) {
+                setErrors({ ...errors, short_description: '' });
+              }
             }}
-            placeholder="Brief one-liner about your app (max 80 characters)"
+            placeholder="Brief one-liner about your app (10-80 characters)"
             maxLength={80}
+            className={errors.short_description ? 'border-red-500' : ''}
           />
-          <p className="text-sm text-gray-500 mt-1">
-            {settings.short_description?.length || 0}/80 characters - Shown in app cards and search results
+          <p className={`text-sm mt-1 ${
+            settings.short_description.length < 10
+              ? 'text-orange-600'
+              : settings.short_description.length > 80
+              ? 'text-red-600'
+              : 'text-gray-500'
+          }`}>
+            {settings.short_description.length}/80 characters (minimum 10) - Shown in app cards and search results
           </p>
+          {errors.short_description && (
+            <p className="text-sm text-red-600 mt-1">{errors.short_description}</p>
+          )}
         </div>
 
         {/* Description */}

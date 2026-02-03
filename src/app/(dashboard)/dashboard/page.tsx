@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { appsService } from '@/lib/services';
-import type { App } from '@/lib/types/api.types';
+import type { App, PerformanceOverview } from '@/lib/types/api.types';
 import { AppCard } from '@/components/dashboard/AppCard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { EmptyState } from '@/components/dashboard/EmptyState';
@@ -23,39 +23,48 @@ export default function DashboardPage() {
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [performanceData, setPerformanceData] = useState<PerformanceOverview | null>(null);
 
-  // Default date range: last 7 days
+  // Default date range: last 30 days
   const today = new Date();
   const defaultStart = new Date(today);
-  defaultStart.setDate(defaultStart.getDate() - 7);
+  defaultStart.setDate(defaultStart.getDate() - 30);
 
   const [startDate, setStartDate] = useState<string>(defaultStart.toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState<string>(today.toISOString().split('T')[0]);
 
   useEffect(() => {
-    // Only load apps if we have a token
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    console.log('📊 Dashboard: Checking token before loading apps. Token:', token ? 'exists' : 'missing');
     if (token) {
       loadApps();
+      loadPerformanceData();
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [startDate, endDate]);
 
   const loadApps = async () => {
     try {
-      console.log('📊 Dashboard: Loading apps...');
       setLoading(true);
       setError(null);
       const data = await appsService.getApps();
-      console.log('📊 Dashboard: Apps loaded successfully:', data.length, 'apps');
       setApps(data);
     } catch (err) {
-      console.error('📊 Dashboard: Error loading apps:', err);
+      console.error('Error loading apps:', err);
       setError(err instanceof Error ? err.message : 'Failed to load apps');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPerformanceData = async () => {
+    try {
+      const data = await appsService.getPerformanceOverview('all', startDate, endDate);
+      if (data) {
+        setPerformanceData(data);
+      }
+    } catch (err) {
+      console.error('Error loading performance data:', err);
     }
   };
 
@@ -63,49 +72,40 @@ export default function DashboardPage() {
   const draftApps = apps.filter(app => app.status === 'DRAFT');
   const pendingApps = apps.filter(app => app.status === 'PENDING');
 
-  // Helper function to generate chart data based on date range
-  const generateChartData = (start: string, end: string, dataKey: string) => {
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-    const data = [];
-
-    // Calculate number of days in range
-    const daysDiff = Math.floor((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-    for (let i = 0; i < daysDiff; i++) {
-      const date = new Date(startDateObj);
-      date.setDate(date.getDate() + i);
-
-      const dateFormat = daysDiff <= 7
-        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : daysDiff <= 30
-        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-
-      if (dataKey === 'installs') {
-        data.push({
-          date: dateFormat,
-          installs: Math.floor(Math.random() * 100) + 50,
-        });
-      } else if (dataKey === 'revenue') {
-        data.push({
-          date: dateFormat,
-          revenue: Math.floor(Math.random() * 500) + 200,
-        });
-      } else if (dataKey === 'uninstalls') {
-        data.push({
-          date: dateFormat,
-          uninstalls: Math.floor(Math.random() * 20) + 5,
-        });
-      }
-    }
-    return data;
+  // Helper functions
+  const formatDateLabel = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Generate chart data based on selected date range
-  const installsChartData = useMemo(() => generateChartData(startDate, endDate, 'installs'), [startDate, endDate]);
-  const revenueChartData = useMemo(() => generateChartData(startDate, endDate, 'revenue'), [startDate, endDate]);
-  const uninstallsChartData = useMemo(() => generateChartData(startDate, endDate, 'uninstalls'), [startDate, endDate]);
+  const formatCurrency = (value: number) => {
+    const currency = performanceData?.currency || 'EGP';
+    return new Intl.NumberFormat('en-EG', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Generate chart data from API response
+  const chartData = useMemo(() => {
+    if (!performanceData) return { installs: [], revenue: [], uninstalls: [] };
+
+    return {
+      installs: performanceData.installsChart.map(item => ({
+        date: formatDateLabel(item.date),
+        installs: item.value,
+      })),
+      revenue: performanceData.revenueChart.map(item => ({
+        date: formatDateLabel(item.date),
+        revenue: item.value,
+      })),
+      uninstalls: performanceData.uninstallsChart.map(item => ({
+        date: formatDateLabel(item.date),
+        uninstalls: item.value,
+      })),
+    };
+  }, [performanceData]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -119,7 +119,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Total Apps"
-          value={apps.length.toString()}
+          value={performanceData?.appsCount?.toString() || apps.length.toString()}
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -159,7 +159,7 @@ export default function DashboardPage() {
         />
         <StatsCard
           title="Total Revenue"
-          value={new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format((apps.reduce((sum, app) => sum + (app.totalRevenue || 0), 0) + 12450))}
+          value={formatCurrency(performanceData?.totalRevenue || 0)}
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -168,11 +168,11 @@ export default function DashboardPage() {
           color="green"
         />
         <StatsCard
-          title="Current Balance"
-          value={new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(8320)}
+          title="Total Installs"
+          value={(performanceData?.lifetimeInstalls || 0).toLocaleString()}
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           }
           color="blue"
@@ -281,7 +281,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData.revenue} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -298,9 +298,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-2xl font-bold text-green-600">
-                {new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 0 }).format(
-                  revenueChartData.reduce((sum, d) => sum + (d.revenue || 0), 0)
-                )}
+                {formatCurrency(chartData.revenue.reduce((sum, d) => sum + (d.revenue || 0), 0))}
               </span>
               <span className="text-sm text-gray-500">total</span>
             </div>
@@ -313,7 +311,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={installsChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData.installs} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="installGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
@@ -330,7 +328,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-2xl font-bold text-gray-900">
-                {installsChartData.reduce((sum, d) => sum + (d.installs || 0), 0)}
+                {chartData.installs.reduce((sum, d) => sum + (d.installs || 0), 0)}
               </span>
               <span className="text-sm text-gray-500">total</span>
             </div>
@@ -343,7 +341,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={uninstallsChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                <AreaChart data={chartData.uninstalls} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="uninstallGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
@@ -360,7 +358,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-2xl font-bold text-red-600">
-                {uninstallsChartData.reduce((sum, d) => sum + (d.uninstalls || 0), 0)}
+                {chartData.uninstalls.reduce((sum, d) => sum + (d.uninstalls || 0), 0)}
               </span>
               <span className="text-sm text-gray-500">total</span>
             </div>
@@ -412,3 +410,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

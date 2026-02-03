@@ -73,6 +73,17 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
       setError(null);
       setSuccess(false);
 
+      // Validate that each selected scope has a reason
+      const missingReasons = selectedScopes.filter(
+        scopeKey => !scopeReasons[scopeKey] || scopeReasons[scopeKey].trim().length === 0
+      );
+
+      if (missingReasons.length > 0) {
+        setError(`Please provide a reason for all selected permissions (${missingReasons.length} missing)`);
+        setSaving(false);
+        return;
+      }
+
       await settingsService.updateScopeSettings(appId, {
         scopes: selectedScopes,
         scope_reasons: scopeReasons
@@ -187,7 +198,7 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
                     {selectedScopes.includes(scope.key) && (
                       <div className="ml-9 mr-3">
                         <label htmlFor={`reason-${scope.key}`} className="block text-xs font-medium text-gray-700 mb-1">
-                          Why do you need this permission?
+                          Why do you need this permission? <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           id={`reason-${scope.key}`}
@@ -200,9 +211,13 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
                             }));
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          placeholder="Explain why your app needs this permission..."
+                          placeholder="Explain why your app needs this permission... (required)"
                           rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none"
+                          className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none ${
+                            !scopeReasons[scope.key] || scopeReasons[scope.key].trim().length === 0
+                              ? 'border-orange-300 bg-orange-50/30'
+                              : 'border-gray-300'
+                          }`}
                         />
                         <p className="text-[10px] text-gray-500 mt-1">
                           This helps reviewers understand your app&apos;s functionality

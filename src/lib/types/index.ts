@@ -48,4 +48,20 @@ export type {
   CreateAppRequest,
   UpdateAppRequest,
   PublishAppRequest,
+
+  // Notifications
+  Notification,
+  NotificationContent,
+  NotificationsResponse,
+
+  // Analytics
+  ChartDataPoint,
+  PerformanceOverview,
+
+  // Wallet
+  WalletBalance,
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+  TransactionsResponse,
 } from './api.types';

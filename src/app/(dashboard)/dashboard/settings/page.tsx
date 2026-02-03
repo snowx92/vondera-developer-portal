@@ -3,48 +3,33 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { appsService } from '@/lib/services';
-import type { App } from '@/lib/types/api.types';
+import { appsService, AuthService } from '@/lib/services';
+import type { App, DeveloperProfile } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-interface DeveloperProfile {
-  image: string;
-  name: string;
-  email: string;
-  phone: string;
-  banner: string;
-  featuredAppId: string;
-}
 
 export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [apps, setApps] = useState<App[]>([]);
-  const [profile, setProfile] = useState<DeveloperProfile>({
-    image: '',
-    name: '',
-    email: '',
-    phone: '',
-    banner: '',
-    featuredAppId: '',
-  });
-  const [originalProfile, setOriginalProfile] = useState<DeveloperProfile>({
-    image: '',
-    name: '',
-    email: '',
-    phone: '',
-    banner: '',
-    featuredAppId: '',
-  });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [profile, setProfile] = useState<DeveloperProfile | null>(null);
+  const [originalProfile, setOriginalProfile] = useState<DeveloperProfile | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [deleting, setDeleting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Form state
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPhoneCountryCode, setEditPhoneCountryCode] = useState('+20');
+
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     loadData();
@@ -53,19 +38,20 @@ export default function SettingsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Load apps for featured app dropdown
+
+      // Load apps for featured app dropdown (kept for reference but not shown in UI)
       const appsData = await appsService.getApps();
       setApps(appsData);
 
-      // TODO: Load developer profile from API when available
-      // For now, load from localStorage as placeholder
-      const savedProfile = localStorage.getItem('developer_profile');
-      if (savedProfile) {
-        const parsedProfile = JSON.parse(savedProfile);
-        setProfile(parsedProfile);
-        setOriginalProfile(parsedProfile);
-        if (parsedProfile.image) setImagePreview(parsedProfile.image);
-        if (parsedProfile.banner) setBannerPreview(parsedProfile.banner);
+      // Load developer profile from API
+      const profileData = await AuthService.getProfile();
+      if (profileData) {
+        setProfile(profileData);
+        setOriginalProfile(profileData);
+        setEditName(profileData.name || '');
+        setEditEmail(profileData.email || '');
+        setEditPhone(profileData.phone || '');
+        setEditPhoneCountryCode(profileData.phoneCountryCode || '+20');
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -75,56 +61,28 @@ export default function SettingsPage() {
     }
   };
 
-  const hasChanges =
-    profile.image !== originalProfile.image ||
-    profile.name !== originalProfile.name ||
-    profile.email !== originalProfile.email ||
-    profile.phone !== originalProfile.phone ||
-    profile.banner !== originalProfile.banner ||
-    profile.featuredAppId !== originalProfile.featuredAppId;
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'banner') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        setErrors({ ...errors, [type]: 'Image size must be less than 2MB' });
-        return;
-      }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrors({ ...errors, [type]: 'Please upload a valid image file' });
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        if (type === 'image') {
-          setImagePreview(result);
-          setProfile({ ...profile, image: result });
-        } else {
-          setBannerPreview(result);
-          setProfile({ ...profile, banner: result });
-        }
-        setErrors({ ...errors, [type]: '' });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const hasChanges = profile
+    ? (editName !== profile.name ||
+        editEmail !== profile.email ||
+        editPhone !== profile.phone ||
+        editPhoneCountryCode !== profile.phoneCountryCode)
+    : false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setSuccess(false);
+    setSuccessMessage('');
 
     // Validation
     const newErrors: Record<string, string> = {};
-    if (!profile.name.trim()) newErrors.name = 'Developer name is required';
-    if (!profile.email.trim()) newErrors.email = 'Email is required';
-    if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+    if (!editName.trim()) newErrors.name = 'Developer name is required';
+    if (!editEmail.trim()) newErrors.email = 'Email is required';
+    if (editEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) {
       newErrors.email = 'Invalid email format';
+    }
+    if (editPhone && !/^\+?[0-9]{10,15}$/.test(editPhone.replace(/\s/g, ''))) {
+      newErrors.phone = 'Invalid phone number format';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -134,12 +92,24 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      // TODO: Save to API when available
-      // For now, save to localStorage
-      localStorage.setItem('developer_profile', JSON.stringify(profile));
-      setOriginalProfile(profile);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      const updatedProfile = await AuthService.updateProfile({
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        phoneCountryCode: editPhoneCountryCode,
+        image: profile?.profilePic || '',
+      });
+
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        setOriginalProfile(updatedProfile);
+        setSuccess(true);
+        setSuccessMessage('Profile updated successfully!');
+        setTimeout(() => {
+          setSuccess(false);
+          setSuccessMessage('');
+        }, 3000);
+      }
     } catch (error) {
       setErrors({
         submit: error instanceof Error ? error.message : 'Failed to save profile',
@@ -149,30 +119,75 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'DELETE') {
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    setSuccess(false);
+    setSuccessMessage('');
+
+    // Validation
+    const newErrors: Record<string, string> = {};
+    if (!oldPassword) newErrors.oldPassword = 'Current password is required';
+    if (!newPassword) newErrors.newPassword = 'New password is required';
+    if (newPassword && newPassword.length < 8) {
+      newErrors.newPassword = 'Password must be at least 8 characters';
+    }
+    if (newPassword !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
     try {
-      setDeleting(true);
-      // TODO: Call API to delete developer account and all apps
-      // This will also sign out the user
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('developer_profile');
-      router.push('/login');
+      setLoading(true);
+      const result = await AuthService.changePassword(oldPassword, newPassword);
+
+      if (result.success) {
+        setSuccess(true);
+        setSuccessMessage('Password changed successfully!');
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowPasswordForm(false);
+        setTimeout(() => {
+          setSuccess(false);
+          setSuccessMessage('');
+        }, 3000);
+      } else {
+        setErrors({ submit: result.message });
+      }
     } catch (error) {
       setErrors({
-        delete: error instanceof Error ? error.message : 'Failed to delete account',
+        submit: error instanceof Error ? error.message : 'Failed to change password',
       });
-      setDeleting(false);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading && !profile.name) {
+  if (loading && !profile) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-vondera-purple"></div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700">{errors.load || 'Failed to load profile'}</p>
+          <button
+            onClick={loadData}
+            className="mt-2 text-vondera-purple hover:underline"
+          >
+            Try again
+          </button>
+        </div>
       </div>
     );
   }
@@ -185,86 +200,90 @@ export default function SettingsPage() {
         <p className="text-gray-600">Manage your public developer profile settings</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Developer Image */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Image</h2>
-          <div className="flex items-start gap-6">
-            <div className="relative">
-              {imagePreview ? (
-                <Image
-                  src={imagePreview}
-                  alt="Developer profile"
-                  width={120}
-                  height={120}
-                  className="w-30 h-30 rounded-full object-cover border-4 border-gray-200"
-                />
-              ) : (
-                <div className="w-30 h-30 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <Label htmlFor="image">Upload Profile Image</Label>
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, 'image')}
-                className="mt-2"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                Recommended: Square image, at least 512x512px. Max size 2MB.
-              </p>
-              {errors.image && (
-                <p className="text-sm text-red-600 mt-1">{errors.image}</p>
-              )}
-            </div>
+      {/* Success Message */}
+      {success && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-green-700">{successMessage}</p>
           </div>
         </div>
+      )}
 
-        {/* Banner Image */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Banner Image</h2>
-          <div className="space-y-4">
-            {bannerPreview ? (
-              <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-                <Image
-                  src={bannerPreview}
-                  alt="Developer banner"
-                  fill
-                  className="object-cover"
-                />
-              </div>
+      {/* Error Message */}
+      {errors.submit && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-red-700">{errors.submit}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Summary Card */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            {profile.profilePic ? (
+              <Image
+                src={profile.profilePic}
+                alt={profile.name}
+                width={80}
+                height={80}
+                className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+              />
             ) : (
-              <div className="w-full h-48 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200">
-                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
             )}
-            <div>
-              <Label htmlFor="banner">Upload Banner Image</Label>
-              <Input
-                id="banner"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, 'banner')}
-                className="mt-2"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                Recommended: 1920x400px or wider. Max size 2MB.
-              </p>
-              {errors.banner && (
-                <p className="text-sm text-red-600 mt-1">{errors.banner}</p>
+            {profile.isOnline && (
+              <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+            )}
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">{profile.name}</h2>
+            <p className="text-gray-600">{profile.email}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                profile.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                profile.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                profile.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {profile.status}
+              </span>
+              {profile.isBanned && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Banned
+                </span>
               )}
             </div>
           </div>
+          <div className="ml-auto flex gap-6 text-center">
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{profile.counters.appsCount}</p>
+              <p className="text-sm text-gray-500">Apps</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{profile.counters.totalInstalls}</p>
+              <p className="text-sm text-gray-500">Installs</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">EGP {profile.counters.totalRevenue.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Revenue</p>
+            </div>
+          </div>
         </div>
+      </div>
 
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Information */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
@@ -274,8 +293,8 @@ export default function SettingsPage() {
               <Input
                 id="name"
                 type="text"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
                 placeholder="Your Name or Company Name"
               />
               {errors.name && (
@@ -288,8 +307,8 @@ export default function SettingsPage() {
               <Input
                 id="email"
                 type="email"
-                value={profile.email}
-                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
                 placeholder="developer@example.com"
               />
               <p className="text-sm text-gray-500 mt-1">
@@ -302,67 +321,40 @@ export default function SettingsPage() {
 
             <div>
               <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                placeholder="+1 (555) 123-4567"
-              />
+              <div className="flex gap-2">
+                <select
+                  value={editPhoneCountryCode}
+                  onChange={(e) => setEditPhoneCountryCode(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent bg-white"
+                >
+                  <option value="+20">+20 (Egypt)</option>
+                  <option value="+1">+1 (US/Canada)</option>
+                  <option value="+44">+44 (UK)</option>
+                  <option value="+966">+966 (Saudi Arabia)</option>
+                  <option value="+971">+971 (UAE)</option>
+                  <option value="+973">+973 (Bahrain)</option>
+                  <option value="+974">+974 (Qatar)</option>
+                  <option value="+965">+965 (Kuwait)</option>
+                  <option value="+968">+968 (Oman)</option>
+                </select>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Phone number"
+                  className="flex-1"
+                />
+              </div>
               <p className="text-sm text-gray-500 mt-1">
-                Optional. Visible to users for support.
+                Visible to users for support
               </p>
+              {errors.phone && (
+                <p className="text-sm text-red-600 mt-1">{errors.phone}</p>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Featured App */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Featured App</h2>
-          <div>
-            <Label htmlFor="featuredApp">Select App to Feature</Label>
-            <select
-              id="featuredApp"
-              value={profile.featuredAppId}
-              onChange={(e) => setProfile({ ...profile, featuredAppId: e.target.value })}
-              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent"
-            >
-              <option value="">None</option>
-              {apps.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.name} {app.status === 'PUBLISHED' ? '(Published)' : `(${app.status})`}
-                </option>
-              ))}
-            </select>
-            <p className="text-sm text-gray-500 mt-2">
-              This app will be prominently displayed on your developer profile
-            </p>
-          </div>
-        </div>
-
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-green-700">Profile updated successfully!</p>
-            </div>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {errors.submit && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-red-700">{errors.submit}</p>
-            </div>
-          </div>
-        )}
 
         {/* Actions */}
         <div className="flex gap-3">
@@ -381,103 +373,110 @@ export default function SettingsPage() {
             )}
           </Button>
         </div>
-
-        {/* Danger Zone */}
-        <div className="border-t border-gray-200 pt-8 mt-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Danger Zone</h3>
-            <p className="text-sm text-red-700 mb-4">
-              Deleting your developer account will permanently remove all your apps from the Vondera App Store. This action cannot be undone. All app installations will be revoked and user data will be permanently deleted.
-            </p>
-            <Button
-              type="button"
-              onClick={() => setShowDeleteDialog(true)}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Delete Developer Account
-            </Button>
-          </div>
-        </div>
       </form>
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
+      {/* Password Change Section */}
+      <div className="border-t border-gray-200 pt-8 mt-8">
+        {!showPasswordForm ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Developer Account</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Password</h2>
+                <p className="text-sm text-gray-500">Change your account password</p>
               </div>
+              <Button
+                type="button"
+                onClick={() => setShowPasswordForm(true)}
+                variant="outline"
+              >
+                Change Password
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+              <Button
+                type="button"
+                onClick={() => {
+                  setShowPasswordForm(false);
+                  setOldPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setErrors({});
+                }}
+                variant="ghost"
+                size="sm"
+              >
+                Cancel
+              </Button>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800 font-medium mb-2">This will permanently delete:</p>
-                <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                  <li>All {apps.length} of your apps</li>
-                  <li>All app installations and user data</li>
-                  <li>Your developer profile and settings</li>
-                  <li>All access tokens and credentials</li>
-                </ul>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <Label htmlFor="oldPassword">Current Password *</Label>
+                <Input
+                  id="oldPassword"
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Enter current password"
+                />
+                {errors.oldPassword && (
+                  <p className="text-sm text-red-600 mt-1">{errors.oldPassword}</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="delete-confirm">Type <span className="font-mono font-semibold">DELETE</span> to confirm</Label>
+                <Label htmlFor="newPassword">New Password *</Label>
                 <Input
-                  id="delete-confirm"
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="DELETE"
-                  className="mt-2"
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 8 characters"
                 />
+                {errors.newPassword && (
+                  <p className="text-sm text-red-600 mt-1">{errors.newPassword}</p>
+                )}
               </div>
 
-              {errors.delete && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm text-red-700">{errors.delete}</p>
-                </div>
-              )}
+              <div>
+                <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>
+                )}
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <Button
-                  type="button"
-                  onClick={() => {
-                    setShowDeleteDialog(false);
-                    setDeleteConfirmText('');
-                    setErrors({});
-                  }}
-                  disabled={deleting}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  type="submit"
+                  disabled={loading}
+                  className="bg-vondera-purple hover:bg-vondera-purple-dark"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirmText !== 'DELETE' || deleting}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                >
-                  {deleting ? (
+                  {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Deleting...
+                      Changing...
                     </>
                   ) : (
-                    'Delete Account'
+                    'Change Password'
                   )}
                 </Button>
               </div>
-            </div>
+            </form>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
+

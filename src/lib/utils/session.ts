@@ -1,3 +1,5 @@
+import { getIdToken } from '../config/firebase';
+
 export class SessionManager {
   private static instance: SessionManager;
   private readonly TOKEN_KEY = 'auth_token';
@@ -12,8 +14,19 @@ export class SessionManager {
   }
 
   async getCurrentToken(): Promise<string | null> {
-    // In a real implementation, this might refresh the token or check validity
-    // For now, just return the stored token
+    try {
+      // Try to get a fresh token from Firebase (will auto-refresh if needed)
+      const freshToken = await getIdToken(false);
+      if (freshToken) {
+        // Update stored token
+        this.setToken(freshToken);
+        return freshToken;
+      }
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+    }
+
+    // Fall back to stored token if refresh fails
     return this.getToken();
   }
 

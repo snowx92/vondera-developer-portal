@@ -102,6 +102,9 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
       } else if (!validateUrl(webhook.url)) {
         newErrors[`url_${index}`] = 'Please enter a valid URL';
       }
+      if (!webhook.reason || webhook.reason.trim().length === 0) {
+        newErrors[`reason_${index}`] = 'Reason is required';
+      }
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -187,15 +190,22 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
 
                   {/* Reason */}
                   <div>
-                    <Label htmlFor={`reason_${index}`}>Reason (Why do you need this webhook?)</Label>
+                    <Label htmlFor={`reason_${index}`}>
+                      Reason (Why do you need this webhook?) <span className="text-red-500">*</span>
+                    </Label>
                     <textarea
                       id={`reason_${index}`}
-                      value={webhook.reason || ''}
+                      value={webhook.reason}
                       onChange={(e) => updateWebhook(index, 'reason', e.target.value)}
                       placeholder="Explain why your app needs to subscribe to this event..."
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none ${
+                        errors[`reason_${index}`] ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     />
+                    {errors[`reason_${index}`] && (
+                      <p className="text-sm text-red-600 mt-1">{errors[`reason_${index}`]}</p>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">
                       This helps reviewers understand your app&apos;s functionality
                     </p>

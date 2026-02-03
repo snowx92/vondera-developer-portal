@@ -45,7 +45,7 @@ export interface AppCategory {
 export interface WebhookEvent {
   event: string;
   url: string;
-  reason?: string; // Why the app needs this webhook - NOT YET IMPLEMENTED IN BACKEND
+  reason: string; // Why the app needs this webhook (required)
 }
 
 // ============================================
@@ -128,8 +128,8 @@ export interface GeneralSettings {
 export interface ListingSettings {
   name: string;
   description: string;
-  short_description?: string; // Short description max 80 chars - NOT YET IMPLEMENTED IN BACKEND
-  instructions?: string; // Installation/setup instructions (HTML) - NOT YET IMPLEMENTED IN BACKEND
+  short_description: string; // Short description 10-80 chars (required)
+  instructions?: string; // Installation/setup instructions (HTML) - optional
   category: string;
   icon: string;
   images: string[];
@@ -148,7 +148,7 @@ export interface EndpointSettings {
 
 export interface ScopeSettings {
   scopes: string[];
-  scope_reasons?: Record<string, string>; // Map of scope key to reason - NOT YET IMPLEMENTED IN BACKEND
+  scope_reasons: Record<string, string>; // Map of scope key to reason (required for each scope)
 }
 
 export interface WebhookSettings {
@@ -262,4 +262,159 @@ export interface UpdateAppRequest {
 
 export interface PublishAppRequest {
   // No body required for publish requests
+}
+
+// ============================================
+// Notification Types
+// ============================================
+
+export interface NotificationContent {
+  title: string;
+  body: string;
+}
+
+export interface Notification {
+  id: string;
+  relatedId: string;
+  route: string;
+  date: Timestamp;
+  icon: string;
+  isNew: boolean;
+  content: NotificationContent;
+}
+
+export interface NotificationsResponse {
+  newNotifications: number;
+  items: Notification[];
+  pageItems: number;
+  totalItems: number;
+  isLastPage: boolean;
+  nextPageNumber: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+// ============================================
+// Test Flight / Testing Stores Types
+// ============================================
+
+export interface TestStoreBoundAt {
+  _seconds: number;
+  _nanoseconds: number;
+}
+
+export interface TestStore {
+  binding_id: string;
+  store_id: string;
+  store_name: string;
+  store_email: string;
+  merchant_id: string;
+  country: string;
+  logo: string;
+  bound_at: TestStoreBoundAt;
+}
+
+export interface TestStoreResponse {
+  stores: TestStore[];
+  total: number;
+}
+
+// ============================================
+// Developer Profile Types
+// ============================================
+
+export interface DeveloperCounters {
+  appsCount: number;
+  totalInstalls: number;
+  totalRevenue: number;
+}
+
+export interface DeveloperProfile {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  phoneCountryCode: string;
+  isBanned: boolean;
+  profilePic: string;
+  isOnline: boolean;
+  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED';
+  counters: DeveloperCounters;
+}
+
+export interface UpdateProfileRequest {
+  name: string;
+  email: string;
+  phone: string;
+  phoneCountryCode: string;
+  image: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+// ============================================
+// Analytics Types
+// ============================================
+
+export interface ChartDataPoint {
+  date: string;
+  value: number;
+}
+
+export interface PerformanceOverview {
+  totalInstalls: number;
+  lifetimeInstalls: number;
+  avgDailyInstalls: number;
+  totalRevenue: number;
+  avgDailyRevenue: number;
+  totalUninstalls: number;
+  appsCount?: number;
+  installsChart: ChartDataPoint[];
+  revenueChart: ChartDataPoint[];
+  uninstallsChart: ChartDataPoint[];
+  from: string;
+  to: string;
+  currency: string;
+}
+
+// ============================================
+// Wallet Types
+// ============================================
+
+export interface WalletBalance {
+  balance: number;
+  currency: string;
+}
+
+export type TransactionType = 'PURCHASE' | 'REFUND' | 'WITHDRAWAL' | 'ADJUSTMENT';
+export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface Transaction {
+  id: string;
+  appId: string;
+  appName: string;
+  storeId: string;
+  type: TransactionType;
+  amount: number;
+  currency: string;
+  purchaseId: string;
+  paymentTransactionId: string;
+  status: TransactionStatus;
+  createdAt: Timestamp;
+}
+
+export interface TransactionsResponse {
+  items: Transaction[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
 }
