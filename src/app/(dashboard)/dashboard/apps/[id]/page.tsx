@@ -229,8 +229,7 @@ export default function AppDetailPage() {
   const hasPendingRequest = reviewRequests.some(r => r.status === 'PENDING');
   const isEditingBlocked = hasPendingRequest && activeTab !== 'reviews' && activeTab !== 'analytics';
 
-  // Static revenue data for demo
-  const totalRevenue = app.totalRevenue || 24580;
+  const totalRevenue = app.totalRevenue || 0;
 
 
   const handleStepClick = (stepId: string) => {

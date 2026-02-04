@@ -151,17 +151,19 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
           >
             <option value="FREE">Free</option>
             <option value="PREMIUM">Premium (only available to merchants on pro plan)</option>
-            <option value="PAID">Paid</option>
+            <option value="PAID">Paid (one-time payment)</option>
+            <option value="SUBSCRIPTION">Subscription (recurring payment)</option>
           </select>
           <p className="text-sm text-gray-500 mt-1">
             {appType === 'FREE' && 'Your app will be available for free to all merchants'}
             {appType === 'PREMIUM' && 'Your app is free to install with optional premium features. Only available to merchants on pro plan.'}
-            {appType === 'PAID' && 'Merchants must pay to use your app'}
+            {appType === 'PAID' && 'Merchants must pay a one-time fee to use your app'}
+            {appType === 'SUBSCRIPTION' && 'Merchants pay a recurring fee to use your app'}
           </p>
         </div>
 
-        {/* Pricing Configuration (only for PAID apps) */}
-        {appType === 'PAID' && (
+        {/* Pricing Configuration (only for PAID and SUBSCRIPTION apps) */}
+        {(appType === 'PAID' || appType === 'SUBSCRIPTION') && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Country Pricing</Label>

@@ -186,7 +186,6 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
                     >
                       <Checkbox
                         checked={selectedScopes.includes(scope.key)}
-                        onCheckedChange={() => handleScopeToggle(scope.key)}
                         className="mt-1"
                       />
                       <div className="flex-1">

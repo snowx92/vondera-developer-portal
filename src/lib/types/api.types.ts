@@ -80,7 +80,7 @@ export interface SetupFormField {
 // ============================================
 
 export type AppStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
-export type AppType = 'FREE' | 'PREMIUM' | 'PAID';
+export type AppType = 'FREE' | 'PREMIUM' | 'PAID' | 'SUBSCRIPTION';
 
 export interface App {
   id: string;

@@ -238,13 +238,13 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
             className={errors.short_description ? 'border-red-500' : ''}
           />
           <p className={`text-sm mt-1 ${
-            settings.short_description.length < 10
+            (settings.short_description || '').length < 10
               ? 'text-orange-600'
-              : settings.short_description.length > 80
+              : (settings.short_description || '').length > 80
               ? 'text-red-600'
               : 'text-gray-500'
           }`}>
-            {settings.short_description.length}/80 characters (minimum 10) - Shown in app cards and search results
+            {(settings.short_description || '').length}/80 characters (minimum 10) - Shown in app cards and search results
           </p>
           {errors.short_description && (
             <p className="text-sm text-red-600 mt-1">{errors.short_description}</p>
