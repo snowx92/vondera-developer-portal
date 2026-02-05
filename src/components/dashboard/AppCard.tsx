@@ -109,9 +109,12 @@ export function AppCard({ app }: AppCardProps) {
         </div>
 
         {/* Description */}
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
-          {app.description || 'No description provided'}
-        </p>
+        <div
+          className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]"
+          dangerouslySetInnerHTML={{
+            __html: app.description || 'No description provided'
+          }}
+        />
 
         {/* Stats Row */}
         <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-100">

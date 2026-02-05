@@ -130,6 +130,7 @@ export interface ListingSettings {
   description: string;
   short_description: string; // Short description 10-80 chars (required)
   instructions?: string; // Installation/setup instructions (HTML) - optional
+  youtube_video_link?: string; // Optional YouTube video link
   category: string;
   icon: string;
   images: string[];

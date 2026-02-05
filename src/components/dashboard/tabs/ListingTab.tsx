@@ -69,6 +69,7 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const hasChanges =
     settings.description !== originalSettings.description ||
     settings.short_description !== originalSettings.short_description ||
+    settings.youtube_video_link !== originalSettings.youtube_video_link ||
     settings.icon !== originalSettings.icon ||
     JSON.stringify(settings.images) !== JSON.stringify(originalSettings.images);
 
@@ -167,10 +168,11 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
       setSaving(true);
       setSuccess(false);
       setErrors({});
-      // Only send description, short_description, icon, and images - name and category are handled in General Settings
+      // Only send description, short_description, youtube_video_link, icon, and images - name and category are handled in General Settings
       await settingsService.updateListingSettings(appId, {
         description: settings.description,
         short_description: settings.short_description,
+        youtube_video_link: settings.youtube_video_link,
         icon: settings.icon,
         images: settings.images,
       });
@@ -278,6 +280,21 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
           </div>
           <p className="text-sm text-gray-500 mt-1">
             Help users get started with your app. Include setup steps, configuration details, and any prerequisites.
+          </p>
+        </div>
+
+        {/* YouTube Video Link */}
+        <div>
+          <Label htmlFor="youtube_video_link">YouTube Video Link (Optional)</Label>
+          <Input
+            id="youtube_video_link"
+            type="url"
+            value={settings.youtube_video_link || ''}
+            onChange={(e) => setSettings({ ...settings, youtube_video_link: e.target.value })}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            Add a YouTube video to showcase your app. This video will be displayed on your app&apos;s store page.
           </p>
         </div>
 
