@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { settingsService } from '@/lib/services';
 import type { WebhookSettings, WebhookEvent } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -35,11 +35,7 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [appId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await settingsService.getWebhookSettings(appId);
@@ -53,7 +49,11 @@ export function WebhooksTab({ appId, onUpdate }: WebhooksTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Check if form has changes
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);

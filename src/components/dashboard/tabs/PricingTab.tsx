@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { settingsService } from '@/lib/services';
 import type { PricingSettingsResponse, PricingSettings, CountryPricing, AppType } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -27,11 +27,7 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [appId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await settingsService.getPricingSettings(appId);
@@ -47,7 +43,11 @@ export function PricingTab({ appId, onUpdate }: PricingTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Check if form has changes
   const hasChanges =

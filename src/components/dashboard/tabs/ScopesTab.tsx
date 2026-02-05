@@ -46,11 +46,22 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
   }, [loadData]);
 
   const handleScopeToggle = (scopeKey: string) => {
-    setSelectedScopes((prev) =>
-      prev.includes(scopeKey)
-        ? prev.filter((k) => k !== scopeKey)
-        : [...prev, scopeKey]
-    );
+    setSelectedScopes((prev) => {
+      const isCurrentlySelected = prev.includes(scopeKey);
+
+      // If deselecting, remove the reason
+      if (isCurrentlySelected) {
+        setScopeReasons((prevReasons) => {
+          const newReasons = { ...prevReasons };
+          delete newReasons[scopeKey];
+          return newReasons;
+        });
+        return prev.filter((k) => k !== scopeKey);
+      }
+
+      // If selecting, add to the list
+      return [...prev, scopeKey];
+    });
   };
 
   const handleSelectCategory = (category: string, scopes: Scope[]) => {
@@ -58,7 +69,14 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
     const allSelected = categoryScopeKeys.every((k) => selectedScopes.includes(k));
 
     if (allSelected) {
-      // Deselect all
+      // Deselect all - remove reasons for deselected scopes
+      setScopeReasons((prevReasons) => {
+        const newReasons = { ...prevReasons };
+        categoryScopeKeys.forEach((key) => {
+          delete newReasons[key];
+        });
+        return newReasons;
+      });
       setSelectedScopes((prev) => prev.filter((k) => !categoryScopeKeys.includes(k)));
     } else {
       // Select all
@@ -84,9 +102,17 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
         return;
       }
 
+      // Only send reasons for selected scopes (cleanup deselected scopes)
+      const filteredReasons: Record<string, string> = {};
+      selectedScopes.forEach(scopeKey => {
+        if (scopeReasons[scopeKey]) {
+          filteredReasons[scopeKey] = scopeReasons[scopeKey];
+        }
+      });
+
       await settingsService.updateScopeSettings(appId, {
         scopes: selectedScopes,
-        scope_reasons: scopeReasons
+        scope_reasons: filteredReasons
       });
 
       setSuccess(true);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { reviewsService } from '@/lib/services';
 import type { ReviewRequest, App, Timestamp, AppStepsResponse } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,7 @@ export function ReviewsTab({ appId, app, appSteps, onUpdate }: ReviewsTabProps) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRequests();
-  }, [appId]);
-
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       setLoading(true);
       const data = await reviewsService.getReviewRequests(appId);
@@ -62,7 +58,11 @@ export function ReviewsTab({ appId, app, appSteps, onUpdate }: ReviewsTabProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [appId]);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
 
   const handlePublishRequest = async () => {
     try {

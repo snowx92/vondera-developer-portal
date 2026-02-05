@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { settingsService } from '@/lib/services';
 import type { CountrySettings } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -41,11 +41,7 @@ export function CountriesTab({ appId, onUpdate }: CountriesTabProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [appId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await settingsService.getCountrySettings(appId);
@@ -59,7 +55,11 @@ export function CountriesTab({ appId, onUpdate }: CountriesTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Check if form has changes
   const hasChanges = JSON.stringify(selectedCountries.sort()) !== JSON.stringify(originalCountries.sort());

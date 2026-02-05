@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { settingsService } from '@/lib/services';
 import type { ListingSettings } from '@/lib/types/api.types';
@@ -38,11 +38,7 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [appId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const settingsData = await settingsService.getListingSettings(appId);
@@ -63,7 +59,11 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Check if form has changes
   const hasChanges =

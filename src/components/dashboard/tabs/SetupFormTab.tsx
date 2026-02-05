@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { settingsService } from '@/lib/services';
 import type { SetupFormField } from '@/lib/types/api.types';
 import { Button } from '@/components/ui/button';
@@ -31,11 +31,7 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [appId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await settingsService.getSetupFormSettings(appId);
@@ -49,7 +45,11 @@ export function SetupFormTab({ appId, onUpdate }: SetupFormTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Check if form has changes
   const hasChanges = JSON.stringify(fields) !== JSON.stringify(originalFields);

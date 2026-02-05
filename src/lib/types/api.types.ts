@@ -45,7 +45,7 @@ export interface AppCategory {
 export interface WebhookEvent {
   event: string;
   url: string;
-  reason?: string; // Why the app needs this webhook (optional)
+  reason: string; // Why the app needs this webhook (required)
 }
 
 // ============================================
@@ -149,7 +149,7 @@ export interface EndpointSettings {
 
 export interface ScopeSettings {
   scopes: string[];
-  scope_reasons?: Record<string, string>; // Map of scope key to reason (optional)
+  scope_reasons: Record<string, string>; // Map of scope key to reason (required for each scope)
 }
 
 export interface WebhookSettings {
