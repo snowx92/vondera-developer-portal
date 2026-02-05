@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { appsService } from '@/lib/services';
@@ -33,16 +33,6 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState<string>(defaultStart.toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState<string>(today.toISOString().split('T')[0]);
 
-  useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    if (token) {
-      loadApps();
-      loadPerformanceData();
-    } else {
-      setLoading(false);
-    }
-  }, [startDate, endDate]);
-
   const loadApps = async () => {
     try {
       setLoading(true);
@@ -57,7 +47,7 @@ export default function DashboardPage() {
     }
   };
 
-  const loadPerformanceData = async () => {
+  const loadPerformanceData = useCallback(async () => {
     try {
       const data = await appsService.getPerformanceOverview('all', startDate, endDate);
       if (data) {
@@ -66,7 +56,17 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Error loading performance data:', err);
     }
-  };
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (token) {
+      loadApps();
+      loadPerformanceData();
+    } else {
+      setLoading(false);
+    }
+  }, [startDate, endDate, loadPerformanceData]);
 
   const publishedApps = apps.filter(app => app.status === 'PUBLISHED');
   const draftApps = apps.filter(app => app.status === 'DRAFT');

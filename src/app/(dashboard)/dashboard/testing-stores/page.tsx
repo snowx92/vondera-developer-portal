@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppsService } from '@/lib/services/apps.service';
@@ -15,13 +16,9 @@ export default function TestingStoresPage() {
   const [success, setSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const appsService = new AppsService();
+  const appsService = useMemo(() => new AppsService(), []);
 
-  useEffect(() => {
-    loadStores();
-  }, []);
-
-  const loadStores = async () => {
+  const loadStores = useCallback(async () => {
     try {
       setLoading(true);
       const response = await appsService.getTestFlightStores();
@@ -36,7 +33,11 @@ export default function TestingStoresPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appsService]);
+
+  useEffect(() => {
+    loadStores();
+  }, [loadStores]);
 
   const handleRemoveStore = async () => {
     if (!storeToRemove) return;
@@ -194,9 +195,11 @@ export default function TestingStoresPage() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center overflow-hidden">
                           {store.logo ? (
-                            <img
+                            <Image
                               src={store.logo}
                               alt={store.store_name}
+                              width={40}
+                              height={40}
                               className="h-10 w-10 object-cover"
                             />
                           ) : (

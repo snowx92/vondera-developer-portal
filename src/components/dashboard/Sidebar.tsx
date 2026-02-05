@@ -111,7 +111,7 @@ export function Sidebar() {
       // Auto-collapse on app details page
       setIsCollapsed(true);
     }
-  }, []);
+  }, [isAppDetailsPage]);
 
   // Auto-collapse when navigating to app details page
   useEffect(() => {

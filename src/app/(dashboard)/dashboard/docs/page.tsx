@@ -339,7 +339,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`} />
                       Required
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">Your app's client ID</td>
+                  <td className="px-4 py-3 text-gray-700">Your app&apos;s client ID</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs text-vondera-purple">clientSecret</td>
@@ -348,7 +348,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`} />
                       Required
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">Your app's client secret</td>
+                  <td className="px-4 py-3 text-gray-700">Your app&apos;s client secret</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs text-vondera-purple">appId</td>
@@ -366,7 +366,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`} />
                       Optional
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">Language locale (default: 'en')</td>
+                  <td className="px-4 py-3 text-gray-700">Language locale (default: &apos;en&apos;)</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs text-vondera-purple">storefrontId</td>
@@ -384,7 +384,7 @@ const orders = await client.orders.list({ pageNo: 1, limit: 10 });`} />
                       Optional
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">Timezone (default: 'Africa/Cairo')</td>
+                  <td className="px-4 py-3 text-gray-700">Timezone (default: &apos;Africa/Cairo&apos;)</td>
                 </tr>
               </tbody>
             </table>
