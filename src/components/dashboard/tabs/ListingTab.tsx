@@ -37,6 +37,7 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
   const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -65,10 +66,22 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
     loadData();
   }, [loadData]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedImage) {
+        setSelectedImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedImage]);
+
   // Check if form has changes
   const hasChanges =
     settings.description !== originalSettings.description ||
     settings.short_description !== originalSettings.short_description ||
+    settings.instructions !== originalSettings.instructions ||
     settings.youtube_video_link !== originalSettings.youtube_video_link ||
     settings.icon !== originalSettings.icon ||
     JSON.stringify(settings.images) !== JSON.stringify(originalSettings.images);
@@ -168,14 +181,19 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
       setSaving(true);
       setSuccess(false);
       setErrors({});
-      // Only send description, short_description, youtube_video_link, icon, and images - name and category are handled in General Settings
+      // Only send description, short_description, instructions, youtube_video_link, icon, and images - name and category are handled in General Settings
       await settingsService.updateListingSettings(appId, {
         description: settings.description,
         short_description: settings.short_description,
+        instructions: settings.instructions,
         youtube_video_link: settings.youtube_video_link,
         icon: settings.icon,
         images: settings.images,
       });
+
+      // Reload data from API to get the saved state
+      await loadData();
+
       setSuccess(true);
       onUpdate();
 
@@ -310,7 +328,8 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
                     alt="App icon"
                     width={80}
                     height={80}
-                    className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200"
+                    className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 cursor-pointer hover:border-vondera-purple transition-colors"
+                    onClick={() => setSelectedImage(iconPreview)}
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 flex items-center justify-center">
@@ -385,12 +404,16 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
                     alt={`Screenshot ${index + 1}`}
                     width={200}
                     height={150}
-                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-vondera-purple transition-colors"
+                    onClick={() => setSelectedImage(preview)}
                   />
                   <button
                     type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage(index);
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -448,6 +471,33 @@ export function ListingTab({ appId, onUpdate }: ListingTabProps) {
           </Button>
         </div>
       </form>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors z-10"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <Image
+              src={selectedImage}
+              alt="Enlarged view"
+              width={1200}
+              height={800}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

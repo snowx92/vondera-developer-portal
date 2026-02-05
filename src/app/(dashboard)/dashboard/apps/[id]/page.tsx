@@ -165,6 +165,7 @@ export default function AppDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('general');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const loadAppData = useCallback(async () => {
     try {
@@ -183,18 +184,21 @@ export default function AppDetailPage() {
       setAppSteps(stepsData);
       setReviewRequests(requestsData || []);
 
-      // Set initial tab based on app status
-      if (appData?.status === 'PUBLISHED' || appData?.status === 'APPROVED') {
-        setActiveTab('analytics');
-      } else {
-        setActiveTab('general');
+      // Only set initial tab on first load, not on updates
+      if (isInitialLoad) {
+        if (appData?.status === 'PUBLISHED' || appData?.status === 'APPROVED') {
+          setActiveTab('analytics');
+        } else {
+          setActiveTab('general');
+        }
+        setIsInitialLoad(false);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load app');
     } finally {
       setLoading(false);
     }
-  }, [appId]);
+  }, [appId, isInitialLoad]);
 
   useEffect(() => {
     loadAppData();
