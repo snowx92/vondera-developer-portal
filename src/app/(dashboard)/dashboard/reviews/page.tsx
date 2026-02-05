@@ -381,7 +381,10 @@ export default function ReviewsPage() {
                                         {status.label}
                                       </span>
                                     </div>
-                                    <p className="text-sm text-gray-600 mb-3">{request.changes_summary}</p>
+                                    <div
+                                      className="text-sm text-gray-600 mb-3"
+                                      dangerouslySetInnerHTML={{ __html: request.changes_summary }}
+                                    />
                                     <div className="flex items-center gap-4 text-xs text-gray-500">
                                       <span className="flex items-center gap-1">
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,8 +437,18 @@ export default function ReviewsPage() {
                                 {request.reviewer_notes && (
                                   <div>
                                     <h6 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Reviewer notes</h6>
-                                    <div className="bg-white rounded-md border border-gray-200 p-3">
-                                      <p className="text-sm text-gray-700">{request.reviewer_notes}</p>
+                                    <div className="bg-blue-50 rounded-md border border-blue-200 p-4">
+                                      <div className="flex gap-3">
+                                        <div className="flex-shrink-0">
+                                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        </div>
+                                        <div
+                                          className="text-sm text-gray-700 flex-1"
+                                          dangerouslySetInnerHTML={{ __html: request.reviewer_notes }}
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -444,8 +457,18 @@ export default function ReviewsPage() {
                                 {request.rejection_reason && (
                                   <div>
                                     <h6 className="text-xs font-semibold text-red-700 mb-2 uppercase tracking-wider">Rejection reason</h6>
-                                    <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                                      <p className="text-sm text-red-700">{request.rejection_reason}</p>
+                                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                                      <div className="flex gap-3">
+                                        <div className="flex-shrink-0">
+                                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        </div>
+                                        <div
+                                          className="text-sm text-red-700 flex-1"
+                                          dangerouslySetInnerHTML={{ __html: request.rejection_reason }}
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -455,27 +478,86 @@ export default function ReviewsPage() {
                                   <div>
                                     <h6 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">Changes</h6>
                                     <div className="bg-white rounded-md border border-gray-200 overflow-hidden">
-                                      {Object.entries(request.changes_diff).map(([key, diff], index) => (
-                                        <div key={key} className={index > 0 ? 'border-t border-gray-100' : ''}>
-                                          <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-                                            <span className="text-xs font-medium text-gray-700">{key}</span>
-                                          </div>
-                                          <div className="p-3 space-y-2 text-sm font-mono">
-                                            <div className="flex gap-2">
-                                              <span className="text-red-600 font-medium">-</span>
-                                              <span className="text-red-600 break-all">
-                                                {diff.old === null ? 'null' : JSON.stringify(diff.old)}
-                                              </span>
+                                      {Object.entries(request.changes_diff).map(([key, diff], index) => {
+                                        // Check if the field is an image URL (icon or image fields)
+                                        const isImageField = key.toLowerCase().includes('icon') || key.toLowerCase().includes('image');
+                                        const isUrlField = typeof diff.old === 'string' && (diff.old?.startsWith('http://') || diff.old?.startsWith('https://')) ||
+                                                          typeof diff.new === 'string' && (diff.new?.startsWith('http://') || diff.new?.startsWith('https://'));
+                                        const showAsImage = isImageField && isUrlField;
+
+                                        // Format field name (convert snake_case to Title Case)
+                                        const fieldName = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                                        // Helper to render value
+                                        const renderValue = (value: unknown, isOld: boolean) => {
+                                          if (value === null || value === undefined) {
+                                            return <span className="text-gray-400 italic">empty</span>;
+                                          }
+
+                                          if (showAsImage && typeof value === 'string') {
+                                            return (
+                                              <div className="flex items-center gap-3">
+                                                <Image
+                                                  src={value}
+                                                  alt={isOld ? 'Old icon' : 'New icon'}
+                                                  width={40}
+                                                  height={40}
+                                                  className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                                                />
+                                                <span className="text-xs text-gray-500 break-all">{value}</span>
+                                              </div>
+                                            );
+                                          }
+
+                                          if (typeof value === 'string' && value.length > 100) {
+                                            return <span className="break-words whitespace-pre-wrap">{value}</span>;
+                                          }
+
+                                          if (typeof value === 'object') {
+                                            return <pre className="text-xs overflow-x-auto">{JSON.stringify(value, null, 2)}</pre>;
+                                          }
+
+                                          return <span className="break-all">{String(value)}</span>;
+                                        };
+
+                                        return (
+                                          <div key={key} className={index > 0 ? 'border-t border-gray-100' : ''}>
+                                            <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                                              <span className="text-sm font-medium text-gray-900">{fieldName}</span>
                                             </div>
-                                            <div className="flex gap-2">
-                                              <span className="text-green-600 font-medium">+</span>
-                                              <span className="text-green-600 break-all">
-                                                {diff.new === null ? 'null' : JSON.stringify(diff.new)}
-                                              </span>
+                                            <div className="p-4 space-y-3">
+                                              {/* Old value */}
+                                              <div className="flex gap-3">
+                                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                                                  <svg className="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                  </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="text-xs font-medium text-red-700 mb-1.5">Previous</div>
+                                                  <div className="text-sm text-gray-700 bg-red-50 rounded-md p-2 border border-red-100">
+                                                    {renderValue(diff.old, true)}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              {/* New value */}
+                                              <div className="flex gap-3">
+                                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mt-0.5">
+                                                  <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                  </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="text-xs font-medium text-green-700 mb-1.5">Updated</div>
+                                                  <div className="text-sm text-gray-700 bg-green-50 rounded-md p-2 border border-green-100">
+                                                    {renderValue(diff.new, false)}
+                                                  </div>
+                                                </div>
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      ))}
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 )}
