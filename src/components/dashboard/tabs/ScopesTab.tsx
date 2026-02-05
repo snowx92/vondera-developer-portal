@@ -31,8 +31,31 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
       ]);
 
       setAvailableScopes(scopesData);
-      setSelectedScopes(settingsData?.scopes || []);
-      setScopeReasons(settingsData?.scope_reasons || {});
+
+      // Normalize scopes data - backend returns [{scope: "key", reason: "text"}]
+      // but we need scopes: ["key"] and scope_reasons: {"key": "text"}
+      const normalizedScopes: string[] = [];
+      const normalizedReasons: Record<string, string> = {};
+
+      (settingsData?.scopes || []).forEach((item: any) => {
+        if (typeof item === 'object' && item !== null && 'scope' in item) {
+          // Backend format: {scope: "key", reason: "text"}
+          normalizedScopes.push(item.scope);
+          if (item.reason && item.reason.trim().length > 0) {
+            normalizedReasons[item.scope] = item.reason;
+          }
+        } else if (typeof item === 'string') {
+          // Fallback: if it's just a string, use it as-is
+          normalizedScopes.push(item);
+        }
+      });
+
+      console.log('Raw scopes from backend:', settingsData?.scopes);
+      console.log('Normalized scopes:', normalizedScopes);
+      console.log('Normalized reasons:', normalizedReasons);
+
+      setSelectedScopes(normalizedScopes);
+      setScopeReasons(normalizedReasons);
     } catch (err) {
       console.error('Failed to load scopes data:', err);
       setError('Failed to load scopes data');
@@ -91,29 +114,54 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
       setError(null);
       setSuccess(false);
 
+      // Debug logging
+      console.log('Selected scopes:', selectedScopes);
+      console.log('Scope reasons:', scopeReasons);
+
       // Validate that each selected scope has a reason
       const missingReasons = selectedScopes.filter(
         scopeKey => !scopeReasons[scopeKey] || scopeReasons[scopeKey].trim().length === 0
       );
 
       if (missingReasons.length > 0) {
-        setError(`Please provide a reason for all selected permissions (${missingReasons.length} missing)`);
+        console.log('Missing reasons for:', missingReasons);
+        console.log('Available scopes:', availableScopes);
+
+        // Get the names of the missing scopes for better error message
+        const missingNames = missingReasons
+          .map(key => {
+            const scope = availableScopes.find(s => s.key === key);
+            console.log(`Finding scope for key ${key}:`, scope);
+            return scope?.name || key;
+          })
+          .join(', ');
+
+        console.log('Missing names:', missingNames);
+        setError(`Please provide a reason for all selected permissions. Missing: ${missingNames}`);
+
+        // Scroll to first missing reason field
+        const firstMissingKey = missingReasons[0];
+        const element = document.getElementById(`reason-${firstMissingKey}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.focus();
+        }
+
         setSaving(false);
         return;
       }
 
-      // Only send reasons for selected scopes (cleanup deselected scopes)
-      const filteredReasons: Record<string, string> = {};
-      selectedScopes.forEach(scopeKey => {
-        if (scopeReasons[scopeKey]) {
-          filteredReasons[scopeKey] = scopeReasons[scopeKey];
-        }
-      });
+      // Transform data to backend format: [{scope: "key", reason: "text"}]
+      const scopesPayload = selectedScopes.map(scopeKey => ({
+        scope: scopeKey,
+        reason: scopeReasons[scopeKey] || ''
+      }));
+
+      console.log('Sending payload:', { scopes: scopesPayload });
 
       await settingsService.updateScopeSettings(appId, {
-        scopes: selectedScopes,
-        scope_reasons: filteredReasons
-      });
+        scopes: scopesPayload
+      } as any);
 
       setSuccess(true);
       onUpdate();
@@ -230,20 +278,30 @@ export function ScopesTab({ appId, onUpdate }: ScopesTabProps) {
                           value={scopeReasons[scope.key] || ''}
                           onChange={(e) => {
                             e.stopPropagation();
-                            setScopeReasons(prev => ({
-                              ...prev,
-                              [scope.key]: e.target.value
-                            }));
+                            const newValue = e.target.value;
+                            setScopeReasons(prev => {
+                              const updated = {
+                                ...prev,
+                                [scope.key]: newValue
+                              };
+                              console.log('Updated scope reasons:', updated);
+                              return updated;
+                            });
                           }}
                           onClick={(e) => e.stopPropagation()}
                           placeholder="Explain why your app needs this permission... (required)"
                           rows={2}
                           className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-vondera-purple focus:border-transparent resize-none ${
                             !scopeReasons[scope.key] || scopeReasons[scope.key].trim().length === 0
-                              ? 'border-orange-300 bg-orange-50/30'
+                              ? 'border-red-300 bg-red-50/30 ring-1 ring-red-300'
                               : 'border-gray-300'
                           }`}
                         />
+                        {(!scopeReasons[scope.key] || scopeReasons[scope.key].trim().length === 0) && (
+                          <p className="text-[10px] text-red-600 mt-1 font-medium">
+                            ⚠ This field is required
+                          </p>
+                        )}
                         <p className="text-[10px] text-gray-500 mt-1">
                           This helps reviewers understand your app&apos;s functionality
                         </p>
